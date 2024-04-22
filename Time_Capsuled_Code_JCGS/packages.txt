@@ -1,0 +1,32 @@
+The following are all of the R packages used and their respective versions for 
+all files in directories: real_cav_analysis/, sim_cav_time_inhomog/, visualizations/
+
+foreach - 1.5.1 
+doParallel - 1.0.16 
+msm - 1.6.9 
+tidyverse - 1.3.1 
+gridExtra - 2.3 
+mvtnorm - 1.1.3 
+deSolve - 1.30 
+expm - 0.999.6 
+latex2exp - 0.9.5
+nhm - 0.1.2 (use "install.packages('nhm_0.1.2.tar.gz', repos = NULL)" in real_cav_analysis/)
+
+
+The following are all of the R packages used and their respective versions for 
+all files in the directory: real_ecog_analysis/
+
+foreach - 1.5.2 
+doParallel - 1.0.17
+tidyverse - 1.3.1
+gridExtra - 2.3
+mvtnorm - 1.1.3 
+msm - 1.6.9
+deSolve - 1.32 
+expm - 0.999.6 
+gtools - 3.9.2.1 
+
+* NOTE: the package version of "foreach" and "doParallel" are different in
+real_ecog_analysis/computation_test.r where we use the following versions:
+    foreach - 1.5.1
+    doParallel - 1.0.16
