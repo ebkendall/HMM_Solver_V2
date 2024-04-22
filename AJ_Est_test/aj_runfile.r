@@ -122,6 +122,8 @@ aj_estimate <- function(s, t, data_mat) {
     
     focus_times = t_unique[t_unique > s & t_unique <= t]
     
+    A_hat = vector(mode = "list", length = length(focus_times))
+    
     P_s_t = diag(4)
     
     for(t_j in focus_times) {
@@ -160,10 +162,16 @@ aj_estimate <- function(s, t, data_mat) {
         
         diag(alpha_j) = -rowSums(alpha_j)
         
+        A_hat[[which(focus_times == t_j)]] = vector(mode = 'list', length = 2)
+        A_hat[[which(focus_times == t_j)]][[1]] = t_j
+        A_hat[[which(focus_times == t_j)]][[2]] = alpha_j
+        
         P_s_t = P_s_t %*% (diag(4) + alpha_j)
     }
     
-    return(P_s_t)
+    return_list = list(P_s_t, A_hat)
+    
+    return(return_list)
 }
 
 aj_estimate_misclass <- function(s, t, data_mat, sex) {
@@ -237,18 +245,15 @@ trueValues = c(-2.31617310,  -1.28756312,  -1.10116400,  -2.52367543,
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
-t1 = 0
+t1 = 1
 t2 = 3
-
-# P_aj = aj_estimate(t1, t2, cavData, 0)
-P_aj = aj_estimate(t1, t2, cavData)
 
 p_ic <- c(p1=1,p2=0,p3=0,p4=0,p5=1,p6=0,p7=0,p8=1,p9=0) # initial condition
 
 beta <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 beta = beta[,-3]
 
-out <- deSolve::ode(p_ic, times = t1:t2, func = model_t,
+out2 <- deSolve::ode(p_ic, times = c(t1,t2), func = model_t,
                     parms = list(b=beta))
 
 P_desolve <- matrix(c(out[2,"p1"], out[2,"p2"], out[2,"p3"], out[2,"p4"],
@@ -256,85 +261,12 @@ P_desolve <- matrix(c(out[2,"p1"], out[2,"p2"], out[2,"p3"], out[2,"p4"],
               0,  0, out[2,"p8"], out[2,"p9"],
               0,  0,  0,  1), nrow = 4, byrow = T)
 
+# P_aj = aj_estimate(t1, t2, cavData, 0)
+AJ_list = aj_estimate(t1, t2, cavData)
+
 print(paste0("AJ Estimator for [", t1, ", ", t2, "]"))
-print(P_aj)
+print(AJ_list[[1]])
 
 print(paste0("Numerical Estimator for [", t1, ", ", t2, "]"))
 print(P_desolve)
 
-# ------------------------------------------------------------------------------
-# Applying to Real CAV data ----------------------------------------------------
-# (ignoring covariates; ignoring misclassification) ----------------------------
-# ------------------------------------------------------------------------------
-real_cav = msm::cav
-real_cav = real_cav[,c("PTNUM", "years", "sex", "state")]
-colnames(real_cav) = c("ptnum", "years", "sex", "state")
-
-obs_trans(real_cav)
-
-par = trueValues
-par[6:10] = (1/3) * par[6:10]
-
-P_aj_real = aj_estimate(1, 2, real_cav, 0)
-
-p_ic <- c(p1=1,p2=0,p3=0,p4=0,p5=1,p6=0,p7=0,p8=1,p9=0) # initial condition
-
-beta_real <- matrix(par[par_index$beta], ncol = 3, byrow = F)
-
-out_real <- deSolve::ode(p_ic, times = 1:2, func = model_t,
-                    parms = list(b=beta_real, x_ik = 0))
-
-P_desolve_real <- matrix(c(out_real[2,"p1"], out_real[2,"p2"], out_real[2,"p3"], out_real[2,"p4"],
-                      0, out_real[2,"p5"], out_real[2,"p6"], out_real[2,"p7"],
-                      0,  0, out_real[2,"p8"], out_real[2,"p9"],
-                      0,  0,  0,  1), nrow = 4, byrow = T)
-
-# Perhaps a naive workaround is to just "ignore" the assumed impossible transitions
-
-
-
-# # Partition the time domain
-# t_unique = sort(unique(cavData$years))
-# 
-# # Specify the two time points with which to estimate P(s,t)
-# s = 1
-# t = 2
-# 
-# focus_times = t_unique[t_unique > s & t_unique <= t]
-# 
-# P_s_t = diag(4)
-# 
-# for(t_j in focus_times) {
-#     print(which(focus_times == t_j))
-#     alpha_j = matrix(0, nrow = 4, ncol = 4)
-#     
-#     t_j_ind = which(cavData$years == t_j)
-#     t_j_ind_1 = t_j_ind - 1
-#     
-#     state_t_j = cavData[t_j_ind,"state"]
-#     state_t_j_1 = cavData[t_j_ind_1,"state"]
-#     
-#     r_j = rep(0,4)
-#     for(i in unique(cavData$ptnum)) {
-#         sub_dat = cavData[cavData$ptnum == i, ]
-#         t_pt = max(which(sub_dat$years < t_j))
-#         s_i = sub_dat[t_pt, "state"]
-#         r_j[s_i] = r_j[s_i] + 1
-#     }
-#     
-#     if(sum(r_j) != length(unique(cavData$ptnum))) print("issue with r_j")
-#     
-#     for(g in 1:4) {
-#         for(h in 1:4) {
-#             if(g != h) {
-#                 alpha_j[g,h] = sum(state_t_j_1 == g & state_t_j == h)
-#             }
-#         }
-#     }
-#     
-#     alpha_j = alpha_j / r_j
-#     
-#     diag(alpha_j) = -rowSums(alpha_j)
-#     
-#     P_s_t = P_s_t %*% (diag(4) + alpha_j)
-# }
