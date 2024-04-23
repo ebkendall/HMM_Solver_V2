@@ -75,7 +75,10 @@ trueValues = colMeans(chain)
 # The true values corresponding to the slope coefficient on time are scaled by
 # 3 in order to magnify the effect of the different approaches to modelling 
 # continuous time HMMs.
+
 trueValues[6:10] = 3 * trueValues[6:10]
+save(trueValues, file = paste0("DataOut/trueValues_", num_iter, ".rda"))
+
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
 betaMat <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)

@@ -232,28 +232,31 @@ aj_estimate_misclass <- function(s, t, data_mat, sex) {
 # Applying to simulated data ---------------------------------------------------
 # (ignoring covariates; ignoring misclassification) ----------------------------
 # ------------------------------------------------------------------------------
-load('DataOut/cavData1.rda')
+# it 1: no sex, slope on time is 3x
+# it 2: no sex, slope on time is 1x
+# it 3: sex, slope on time is 3x
+# it 4: sex, slope on time is 1x
+
+args = commandArgs(TRUE)
+it = as.numeric(args[1]) 
+
+load(paste0('DataOut/cavData', it, '.rda'))
 
 obs_trans(cavData)
 
-trueValues = c(-2.31617310,  -1.28756312,  -1.10116400,  -2.52367543,
-               -2.10384797,   0.27050001, -11.65470594,  -0.49306415,
-               0.28862090,   0.22731278,  -0.39079609,  -0.05894252,
-               -0.32509646,   0.48631653,   0.99565810,  -5.28923943,
-               -0.90870027,  -2.40751854,  -2.44696544,  -6.52252202,
-               -6.24090500)
+load(paste0('DataOut/trueValues_', it, '.rda'))
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
-t1 = 1
-t2 = 3
+t1 = min(cavData$years)
+t2 = max(cavData$years)
 
 p_ic <- c(p1=1,p2=0,p3=0,p4=0,p5=1,p6=0,p7=0,p8=1,p9=0) # initial condition
 
 beta <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 beta = beta[,-3]
 
-out2 <- deSolve::ode(p_ic, times = c(t1,t2), func = model_t,
+out <- deSolve::ode(p_ic, times = c(t1,t2), func = model_t,
                     parms = list(b=beta))
 
 P_desolve <- matrix(c(out[2,"p1"], out[2,"p2"], out[2,"p3"], out[2,"p4"],
@@ -263,6 +266,7 @@ P_desolve <- matrix(c(out[2,"p1"], out[2,"p2"], out[2,"p3"], out[2,"p4"],
 
 # P_aj = aj_estimate(t1, t2, cavData, 0)
 AJ_list = aj_estimate(t1, t2, cavData)
+save(AJ_list, file = paste0("DataOut/AJ_list_", it, ".rda"))
 
 print(paste0("AJ Estimator for [", t1, ", ", t2, "]"))
 print(AJ_list[[1]])
@@ -270,3 +274,46 @@ print(AJ_list[[1]])
 print(paste0("Numerical Estimator for [", t1, ", ", t2, "]"))
 print(P_desolve)
 
+
+# Store the time points and estimted transition rates and fit a regression line
+# beta_est_list[[i]][[j]] is the estimated transition rates for the i -> j transition
+beta_est_list = vector(mode = 'list', length = 4)
+for(j in 1:length(beta_est_list)) beta_est_list[[j]] = vector(mode = 'list', length = 4)
+
+for(i in 1:length(AJ_list[[2]])) {
+    print(i)
+    for(j in 1:4) {
+        for(k in 1:4) {
+            if(j != k) {
+                if(AJ_list[[2]][[i]][[2]][j, k] != 0) {
+                    beta_est_list[[j]][[k]] = c(beta_est_list[[j]][[k]], AJ_list[[2]][[i]][[2]][j, k], AJ_list[[2]][[i]][[1]])
+                }
+            }
+        }
+    }
+}
+
+q_comp = list()
+q_comp[[1]] = t(matrix(beta_est_list[[1]][[2]], nrow = 2))
+q_comp[[2]] = t(matrix(beta_est_list[[1]][[4]], nrow = 2))
+q_comp[[3]] = t(matrix(beta_est_list[[2]][[3]], nrow = 2))
+q_comp[[4]] = t(matrix(beta_est_list[[2]][[4]], nrow = 2))
+q_comp[[5]] = t(matrix(beta_est_list[[3]][[4]], nrow = 2))
+
+for(q in 1:length(q_comp)) {
+    q_comp[[q]][,2] = log(q_comp[[q]][,2])
+}
+
+pdf(paste0("beta_plot", it, ".pdf"))
+par(mfrow = c(3,2))
+for(q in 1:length(q_comp)) {
+    m1 = lm(q_comp[[q]][,2] ~ q_comp[[q]][,1])
+    title_est = paste0("beta0 = ", round(m1$coefficients[1], digits = 4), 
+                       ", beta1 = ", round(m1$coefficients[2], digits = 4))
+    sub_title = paste0("beta0 = ", round(beta[q,1], digits = 4), 
+                       ", beta1 = ", round(beta[q,2], digits = 4))
+    plot(q_comp[[q]][,1], q_comp[[q]][,2], xlab = "time", 
+         ylab = paste0("log(q",q,")"), main = title_est, sub = sub_title, col.sub = 'blue')
+    abline(m1, col = 'red')   
+}
+dev.off()
