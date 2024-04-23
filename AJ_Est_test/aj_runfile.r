@@ -109,8 +109,9 @@ p_ic <- c(p1=1,p2=0,p3=0,p4=0,p5=1,p6=0,p7=0,p8=1,p9=0) # initial condition
 beta <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 
 for(s in 0:1) {
-    AJ_list = aj_estimate(t1, t2, cavData, s)
-    save(AJ_list, file = paste0("DataOut/AJ_list_sex_", s, "_", it, ".rda"))   
+    # AJ_list = aj_estimate(t1, t2, cavData, s)
+    # save(AJ_list, file = paste0("DataOut/AJ_list_sex_", s, "_", it, ".rda"))   
+    load(paste0("DataOut/AJ_list_sex_", s, "_", it, ".rda"))
     
     # Store the time points and estimted transition rates and fit a regression line
     # beta_est_list[[i]][[j]] is the estimated transition rates for the i -> j transition
@@ -118,7 +119,6 @@ for(s in 0:1) {
     for(j in 1:length(beta_est_list)) beta_est_list[[j]] = vector(mode = 'list', length = 4)
     
     for(i in 1:length(AJ_list[[2]])) {
-        print(i)
         for(j in 1:4) {
             for(k in 1:4) {
                 if(j != k) {
@@ -131,34 +131,59 @@ for(s in 0:1) {
     }
     
     q_comp = list()
-    q_comp[[1]] = t(matrix(beta_est_list[[1]][[2]], nrow = 2))
-    q_comp[[2]] = t(matrix(beta_est_list[[1]][[4]], nrow = 2))
-    q_comp[[3]] = t(matrix(beta_est_list[[2]][[3]], nrow = 2))
-    q_comp[[4]] = t(matrix(beta_est_list[[2]][[4]], nrow = 2))
-    q_comp[[5]] = t(matrix(beta_est_list[[3]][[4]], nrow = 2))
-    
-    for(q in 1:length(q_comp)) {
-        q_comp[[q]][,2] = log(q_comp[[q]][,2])
+    if(length(beta_est_list[[1]][[2]]) > 0) {
+        q_comp[[1]] = t(matrix(beta_est_list[[1]][[2]], nrow = 2))   
+        q_comp[[1]][,2] = log(q_comp[[1]][,2])
+    } else {
+        q_comp[[1]] = NULL        
+    }
+    if(length(beta_est_list[[1]][[4]]) > 0) {
+        q_comp[[2]] = t(matrix(beta_est_list[[1]][[4]], nrow = 2))   
+        q_comp[[2]][,2] = log(q_comp[[2]][,2])
+    } else {
+        q_comp[[2]] = NULL
+    }
+    if(length(beta_est_list[[2]][[3]]) > 0) {
+        q_comp[[3]] = t(matrix(beta_est_list[[2]][[3]], nrow = 2))
+        q_comp[[3]][,2] = log(q_comp[[3]][,2])
+    } else {
+        q_comp[[3]] = NULL   
+    }
+    if(length(beta_est_list[[2]][[4]]) > 0) {
+        q_comp[[4]] = t(matrix(beta_est_list[[2]][[4]], nrow = 2))        
+        q_comp[[4]][,2] = log(q_comp[[4]][,2])
+    } else {
+        q_comp[[4]] = NULL
+    }
+    if(length(beta_est_list[[3]][[4]]) > 0) {
+        q_comp[[5]] = t(matrix(beta_est_list[[3]][[4]], nrow = 2))
+        q_comp[[5]][,2] = log(q_comp[[5]][,2])
+    } else {
+        q_comp[[5]] = NULL
     }
     
     pdf(paste0("beta_plot_sex_", s, "_", it, ".pdf"))
     par(mfrow = c(3,2))
     for(q in 1:length(q_comp)) {
-        m1 = lm(q_comp[[q]][,2] ~ q_comp[[q]][,1])
-        if(s == 0) {
-            title_est = paste0("beta0 = ", round(m1$coefficients[1], digits = 4), 
-                               ", beta1 = ", round(m1$coefficients[2], digits = 4))
-            sub_title = paste0("beta0 = ", round(beta[q,1], digits = 4), 
-                               ", beta1 = ", round(beta[q,2], digits = 4))
+        if(!is.null(q_comp[[q]])) {
+            m1 = lm(q_comp[[q]][,2] ~ q_comp[[q]][,1])
+            if(s == 0) {
+                title_est = paste0("beta0 = ", round(m1$coefficients[1], digits = 4), 
+                                   ", beta1 = ", round(m1$coefficients[2], digits = 4))
+                sub_title = paste0("beta0 = ", round(beta[q,1], digits = 4), 
+                                   ", beta1 = ", round(beta[q,2], digits = 4))
+            } else {
+                title_est = paste0("beta0 = ", round(m1$coefficients[1], digits = 4), 
+                                   ", beta1 = ", round(m1$coefficients[2], digits = 4))
+                sub_title = paste0("beta0 = ", round(beta[q,1] + beta[q,3], digits = 4), 
+                                   ", beta1 = ", round(beta[q,2], digits = 4))   
+            }
+            plot(q_comp[[q]][,1], q_comp[[q]][,2], xlab = "time", 
+                 ylab = paste0("log(q",q,")"), main = title_est, sub = sub_title, col.sub = 'blue')
+            abline(m1, col = 'red')      
         } else {
-            title_est = paste0("beta0 = ", round(m1$coefficients[1], digits = 4), 
-                               ", beta1 = ", round(m1$coefficients[2], digits = 4))
-            sub_title = paste0("beta0 = ", round(beta[q,1] + beta[q,3], digits = 4), 
-                               ", beta1 = ", round(beta[q,2], digits = 4))   
+            plot.new()
         }
-        plot(q_comp[[q]][,1], q_comp[[q]][,2], xlab = "time", 
-             ylab = paste0("log(q",q,")"), main = title_est, sub = sub_title, col.sub = 'blue')
-        abline(m1, col = 'red')   
     }
     dev.off()
     
