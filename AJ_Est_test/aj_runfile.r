@@ -162,7 +162,7 @@ for(s in 0:1) {
         q_comp[[5]] = NULL
     }
     
-    pdf(paste0("beta_plot_sex_", s, "_", it, ".pdf"))
+    pdf(paste0("Plots/beta_plot_sex_", s, "_", it, ".pdf"))
     par(mfrow = c(3,2))
     for(q in 1:length(q_comp)) {
         if(!is.null(q_comp[[q]])) {
