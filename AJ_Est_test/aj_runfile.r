@@ -1,96 +1,3 @@
-library(deSolve, quietly=T)
-library(msm, quietly = T)
-
-# ------------------------------------------------------------------------------
-# Functions and routine for numerically calculating P --------------------------
-# ------------------------------------------------------------------------------
-
-# Q <- function(time,sex,betaMat){
-#     
-#     q1  = exp( c(1,time,sex) %*% betaMat[1,] )  # Transition from state 1 to state 2.
-#     q2  = exp( c(1,time,sex) %*% betaMat[2,] )  # Transition from state 1 to death.
-#     q3  = exp( c(1,time,sex) %*% betaMat[3,] )  # Transition from state 2 to state 3.
-#     q4  = exp( c(1,time,sex) %*% betaMat[4,] )  # Transition from state 2 to death.
-#     q5  = exp( c(1,time,sex) %*% betaMat[5,] )  # Transition from state 3 to death.
-#     
-#     qmat = matrix(c( 0,q1, 0,q2,
-#                      0, 0,q3,q4,
-#                      0, 0, 0,q5,
-#                      0, 0, 0, 0),nrow=4,byrow=TRUE)
-#     diag(qmat) = -rowSums(qmat)
-#     
-#     return(qmat)
-# }
-# 
-# model_t <- function(t,p,parms) {
-#     
-#     betaMat <- matrix(parms$b, ncol = 3, byrow = F)
-#     
-#     q1  = exp( c(1,t,parms$x_ik) %*% betaMat[1,] )  # Transition from state 1 to state 2.   
-#     q2  = exp( c(1,t,parms$x_ik) %*% betaMat[2,] )  # Transition from state 1 to death.     
-#     q3  = exp( c(1,t,parms$x_ik) %*% betaMat[3,] )  # Transition from state 2 to state 3.   
-#     q4  = exp( c(1,t,parms$x_ik) %*% betaMat[4,] )  # Transition from state 2 to death.     
-#     q5  = exp( c(1,t,parms$x_ik) %*% betaMat[5,] )  # Transition from state 3 to death.     
-#     
-#     dP = rep(1,9) # this is the vector with all differential equations
-#     
-#     dP[1] = p[1]*(-q1-q2)
-#     dP[2] = p[1]*q1 + p[2]*(-q3-q4)
-#     dP[3] = p[2]*q3 - p[3]*q5
-#     dP[4] = p[1]*q2 + p[2]*q4 + p[3]*q5
-#     dP[5] = p[5]*(-q3-q4)
-#     dP[6] = p[5]*q3 - p[6]*q5
-#     dP[7] = p[5]*q4 + p[6]*q5
-#     dP[8] = -p[8]*q5
-#     dP[9] = p[8]*q5
-#     
-#     return(list(dP))
-#     
-# }
-
-Q <- function(time,betaMat){
-    
-    q1  = exp( c(1,time) %*% betaMat[1,] )  # Transition from state 1 to state 2.
-    q2  = exp( c(1,time) %*% betaMat[2,] )  # Transition from state 1 to death.
-    q3  = exp( c(1,time) %*% betaMat[3,] )  # Transition from state 2 to state 3.
-    q4  = exp( c(1,time) %*% betaMat[4,] )  # Transition from state 2 to death.
-    q5  = exp( c(1,time) %*% betaMat[5,] )  # Transition from state 3 to death.
-    
-    qmat = matrix(c( 0,q1, 0,q2,
-                     0, 0,q3,q4,
-                     0, 0, 0,q5,
-                     0, 0, 0, 0),nrow=4,byrow=TRUE)
-    diag(qmat) = -rowSums(qmat)
-    
-    return(qmat)
-}
-
-model_t <- function(t,p,parms) {
-    
-    betaMat <- matrix(parms$b, ncol = 2, byrow = F)
-    
-    q1  = exp( c(1,t) %*% betaMat[1,] )  # Transition from state 1 to state 2.   
-    q2  = exp( c(1,t) %*% betaMat[2,] )  # Transition from state 1 to death.     
-    q3  = exp( c(1,t) %*% betaMat[3,] )  # Transition from state 2 to state 3.   
-    q4  = exp( c(1,t) %*% betaMat[4,] )  # Transition from state 2 to death.     
-    q5  = exp( c(1,t) %*% betaMat[5,] )  # Transition from state 3 to death.     
-    
-    dP = rep(1,9) # this is the vector with all differential equations
-    
-    dP[1] = p[1]*(-q1-q2)
-    dP[2] = p[1]*q1 + p[2]*(-q3-q4)
-    dP[3] = p[2]*q3 - p[3]*q5
-    dP[4] = p[1]*q2 + p[2]*q4 + p[3]*q5
-    dP[5] = p[5]*(-q3-q4)
-    dP[6] = p[5]*q3 - p[6]*q5
-    dP[7] = p[5]*q4 + p[6]*q5
-    dP[8] = -p[8]*q5
-    dP[9] = p[8]*q5
-    
-    return(list(dP))
-    
-}
-
 # ------------------------------------------------------------------------------
 # Function to calculate Aalen-Johansen estimator -------------------------------
 # ------------------------------------------------------------------------------
@@ -111,11 +18,11 @@ obs_trans <- function(df) {
     print(count_transitions)   
 }
 
-aj_estimate <- function(s, t, data_mat) {
+aj_estimate <- function(s, t, data_mat, sex) {
     
     # Take only subjects with the correct covariate specification
-    # data_mat_sub = data_mat[data_mat$sex == sex, ]
-    data_mat_sub = data_mat
+    data_mat_sub = data_mat[data_mat$sex == sex, ]
+    # data_mat_sub = data_mat
     
     # Partition the time domain
     t_unique = sort(unique(data_mat_sub$years))
@@ -174,60 +81,6 @@ aj_estimate <- function(s, t, data_mat) {
     return(return_list)
 }
 
-aj_estimate_misclass <- function(s, t, data_mat, sex) {
-    
-    # Take only subjects with the correct covariate specification
-    data_mat_sub = data_mat[data_mat$sex == sex, ]
-    
-    # Partition the time domain
-    t_unique = sort(unique(data_mat_sub$years))
-    
-    focus_times = t_unique[t_unique > s & t_unique <= t]
-    
-    P_s_t = diag(4)
-    
-    for(t_j in focus_times) {
-        print(paste0(which(focus_times == t_j), " of ", length(focus_times)))
-        alpha_j = matrix(0, nrow = 4, ncol = 4)
-        
-        t_j_ind = which(data_mat_sub$years == t_j)
-        t_j_ind_1 = t_j_ind - 1
-        
-        state_t_j = data_mat_sub[t_j_ind,"state"]
-        state_t_j_1 = data_mat_sub[t_j_ind_1,"state"]
-        
-        r_j = rep(0,4)
-        for(i in unique(data_mat_sub$ptnum)) {
-            sub_dat = data_mat_sub[data_mat_sub$ptnum == i, ]
-            t_pt = max(which(sub_dat$years < t_j))
-            s_i = sub_dat[t_pt, "state"]
-            r_j[s_i] = r_j[s_i] + 1
-        }
-        
-        if(sum(r_j) != length(unique(data_mat_sub$ptnum))) print("issue with r_j")
-        
-        for(g in 1:4) {
-            for(h in 1:4) {
-                if(g != h) {
-                    alpha_j[g,h] = sum(state_t_j_1 == g & state_t_j == h)
-                }
-            }
-        }
-        
-        for(r in 1:nrow(alpha_j)) {
-            if(r_j[r] != 0) {
-                alpha_j[r, ] = alpha_j[r, ] / r_j[r]   
-            }
-        }
-        
-        diag(alpha_j) = -rowSums(alpha_j)
-        
-        P_s_t = P_s_t %*% (diag(4) + alpha_j)
-    }
-    
-    return(P_s_t)
-}
-
 # ------------------------------------------------------------------------------
 # Applying to simulated data ---------------------------------------------------
 # (ignoring covariates; ignoring misclassification) ----------------------------
@@ -254,66 +107,59 @@ t2 = max(cavData$years)
 p_ic <- c(p1=1,p2=0,p3=0,p4=0,p5=1,p6=0,p7=0,p8=1,p9=0) # initial condition
 
 beta <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
-beta = beta[,-3]
 
-out <- deSolve::ode(p_ic, times = c(t1,t2), func = model_t,
-                    parms = list(b=beta))
-
-P_desolve <- matrix(c(out[2,"p1"], out[2,"p2"], out[2,"p3"], out[2,"p4"],
-              0, out[2,"p5"], out[2,"p6"], out[2,"p7"],
-              0,  0, out[2,"p8"], out[2,"p9"],
-              0,  0,  0,  1), nrow = 4, byrow = T)
-
-# P_aj = aj_estimate(t1, t2, cavData, 0)
-AJ_list = aj_estimate(t1, t2, cavData)
-save(AJ_list, file = paste0("DataOut/AJ_list_", it, ".rda"))
-
-print(paste0("AJ Estimator for [", t1, ", ", t2, "]"))
-print(AJ_list[[1]])
-
-print(paste0("Numerical Estimator for [", t1, ", ", t2, "]"))
-print(P_desolve)
-
-
-# Store the time points and estimted transition rates and fit a regression line
-# beta_est_list[[i]][[j]] is the estimated transition rates for the i -> j transition
-beta_est_list = vector(mode = 'list', length = 4)
-for(j in 1:length(beta_est_list)) beta_est_list[[j]] = vector(mode = 'list', length = 4)
-
-for(i in 1:length(AJ_list[[2]])) {
-    print(i)
-    for(j in 1:4) {
-        for(k in 1:4) {
-            if(j != k) {
-                if(AJ_list[[2]][[i]][[2]][j, k] != 0) {
-                    beta_est_list[[j]][[k]] = c(beta_est_list[[j]][[k]], AJ_list[[2]][[i]][[2]][j, k], AJ_list[[2]][[i]][[1]])
+for(s in 0:1) {
+    AJ_list = aj_estimate(t1, t2, cavData, s)
+    save(AJ_list, file = paste0("DataOut/AJ_list_sex_", s, "_", it, ".rda"))   
+    
+    # Store the time points and estimted transition rates and fit a regression line
+    # beta_est_list[[i]][[j]] is the estimated transition rates for the i -> j transition
+    beta_est_list = vector(mode = 'list', length = 4)
+    for(j in 1:length(beta_est_list)) beta_est_list[[j]] = vector(mode = 'list', length = 4)
+    
+    for(i in 1:length(AJ_list[[2]])) {
+        print(i)
+        for(j in 1:4) {
+            for(k in 1:4) {
+                if(j != k) {
+                    if(AJ_list[[2]][[i]][[2]][j, k] != 0) {
+                        beta_est_list[[j]][[k]] = c(beta_est_list[[j]][[k]], AJ_list[[2]][[i]][[1]], AJ_list[[2]][[i]][[2]][j, k])
+                    }
                 }
             }
         }
     }
+    
+    q_comp = list()
+    q_comp[[1]] = t(matrix(beta_est_list[[1]][[2]], nrow = 2))
+    q_comp[[2]] = t(matrix(beta_est_list[[1]][[4]], nrow = 2))
+    q_comp[[3]] = t(matrix(beta_est_list[[2]][[3]], nrow = 2))
+    q_comp[[4]] = t(matrix(beta_est_list[[2]][[4]], nrow = 2))
+    q_comp[[5]] = t(matrix(beta_est_list[[3]][[4]], nrow = 2))
+    
+    for(q in 1:length(q_comp)) {
+        q_comp[[q]][,2] = log(q_comp[[q]][,2])
+    }
+    
+    pdf(paste0("beta_plot_sex_", s, "_", it, ".pdf"))
+    par(mfrow = c(3,2))
+    for(q in 1:length(q_comp)) {
+        m1 = lm(q_comp[[q]][,2] ~ q_comp[[q]][,1])
+        if(s == 0) {
+            title_est = paste0("beta0 = ", round(m1$coefficients[1], digits = 4), 
+                               ", beta1 = ", round(m1$coefficients[2], digits = 4))
+            sub_title = paste0("beta0 = ", round(beta[q,1], digits = 4), 
+                               ", beta1 = ", round(beta[q,2], digits = 4))
+        } else {
+            title_est = paste0("beta0 = ", round(m1$coefficients[1], digits = 4), 
+                               ", beta1 = ", round(m1$coefficients[2], digits = 4))
+            sub_title = paste0("beta0 = ", round(beta[q,1] + beta[q,3], digits = 4), 
+                               ", beta1 = ", round(beta[q,2], digits = 4))   
+        }
+        plot(q_comp[[q]][,1], q_comp[[q]][,2], xlab = "time", 
+             ylab = paste0("log(q",q,")"), main = title_est, sub = sub_title, col.sub = 'blue')
+        abline(m1, col = 'red')   
+    }
+    dev.off()
+    
 }
-
-q_comp = list()
-q_comp[[1]] = t(matrix(beta_est_list[[1]][[2]], nrow = 2))
-q_comp[[2]] = t(matrix(beta_est_list[[1]][[4]], nrow = 2))
-q_comp[[3]] = t(matrix(beta_est_list[[2]][[3]], nrow = 2))
-q_comp[[4]] = t(matrix(beta_est_list[[2]][[4]], nrow = 2))
-q_comp[[5]] = t(matrix(beta_est_list[[3]][[4]], nrow = 2))
-
-for(q in 1:length(q_comp)) {
-    q_comp[[q]][,2] = log(q_comp[[q]][,2])
-}
-
-pdf(paste0("beta_plot", it, ".pdf"))
-par(mfrow = c(3,2))
-for(q in 1:length(q_comp)) {
-    m1 = lm(q_comp[[q]][,2] ~ q_comp[[q]][,1])
-    title_est = paste0("beta0 = ", round(m1$coefficients[1], digits = 4), 
-                       ", beta1 = ", round(m1$coefficients[2], digits = 4))
-    sub_title = paste0("beta0 = ", round(beta[q,1], digits = 4), 
-                       ", beta1 = ", round(beta[q,2], digits = 4))
-    plot(q_comp[[q]][,1], q_comp[[q]][,2], xlab = "time", 
-         ylab = paste0("log(q",q,")"), main = title_est, sub = sub_title, col.sub = 'blue')
-    abline(m1, col = 'red')   
-}
-dev.off()

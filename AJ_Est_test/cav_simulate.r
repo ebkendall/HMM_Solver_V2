@@ -135,41 +135,41 @@ propDeaths <- propDeaths / N_cav
 #----------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------
 
-betaMat = betaMat[,-3]
-
-Q <- function(time,betaMat){
-    
-    q1  = exp( c(1,time) %*% betaMat[1,] )  # Transition from state 1 to state 2.
-    q2  = exp( c(1,time) %*% betaMat[2,] )  # Transition from state 1 to death.
-    q3  = exp( c(1,time) %*% betaMat[3,] )  # Transition from state 2 to state 3.
-    q4  = exp( c(1,time) %*% betaMat[4,] )  # Transition from state 2 to death.
-    q5  = exp( c(1,time) %*% betaMat[5,] )  # Transition from state 3 to death.
-    
-    qmat = matrix(c( 0,q1, 0,q2,
-                     0, 0,q3,q4,
-                     0, 0, 0,q5,
-                     0, 0, 0, 0),nrow=4,byrow=TRUE)
-    diag(qmat) = -rowSums(qmat)
-    
-    return(qmat)
-}
-
-# Q <- function(time,sex,betaMat){
+# betaMat = betaMat[,-3]
 # 
-#   q1  = exp( c(1,time,sex) %*% betaMat[1,] )  # Transition from state 1 to state 2.
-#   q2  = exp( c(1,time,sex) %*% betaMat[2,] )  # Transition from state 1 to death.
-#   q3  = exp( c(1,time,sex) %*% betaMat[3,] )  # Transition from state 2 to state 3.
-#   q4  = exp( c(1,time,sex) %*% betaMat[4,] )  # Transition from state 2 to death.
-#   q5  = exp( c(1,time,sex) %*% betaMat[5,] )  # Transition from state 3 to death.
-# 
-#   qmat = matrix(c( 0,q1, 0,q2,
-#                    0, 0,q3,q4,
-#                    0, 0, 0,q5,
-#                    0, 0, 0, 0),nrow=4,byrow=TRUE)
-#   diag(qmat) = -rowSums(qmat)
-# 
-#   return(qmat)
+# Q <- function(time,betaMat){
+#     
+#     q1  = exp( c(1,time) %*% betaMat[1,] )  # Transition from state 1 to state 2.
+#     q2  = exp( c(1,time) %*% betaMat[2,] )  # Transition from state 1 to death.
+#     q3  = exp( c(1,time) %*% betaMat[3,] )  # Transition from state 2 to state 3.
+#     q4  = exp( c(1,time) %*% betaMat[4,] )  # Transition from state 2 to death.
+#     q5  = exp( c(1,time) %*% betaMat[5,] )  # Transition from state 3 to death.
+#     
+#     qmat = matrix(c( 0,q1, 0,q2,
+#                      0, 0,q3,q4,
+#                      0, 0, 0,q5,
+#                      0, 0, 0, 0),nrow=4,byrow=TRUE)
+#     diag(qmat) = -rowSums(qmat)
+#     
+#     return(qmat)
 # }
+
+Q <- function(time,sex,betaMat){
+
+  q1  = exp( c(1,time,sex) %*% betaMat[1,] )  # Transition from state 1 to state 2.
+  q2  = exp( c(1,time,sex) %*% betaMat[2,] )  # Transition from state 1 to death.
+  q3  = exp( c(1,time,sex) %*% betaMat[3,] )  # Transition from state 2 to state 3.
+  q4  = exp( c(1,time,sex) %*% betaMat[4,] )  # Transition from state 2 to death.
+  q5  = exp( c(1,time,sex) %*% betaMat[5,] )  # Transition from state 3 to death.
+
+  qmat = matrix(c( 0,q1, 0,q2,
+                   0, 0,q3,q4,
+                   0, 0, 0,q5,
+                   0, 0, 0, 0),nrow=4,byrow=TRUE)
+  diag(qmat) = -rowSums(qmat)
+
+  return(qmat)
+}
 
 
 rawData <- NULL
@@ -180,7 +180,7 @@ for(i in 1:N){
   print(i)
 
   # # Sample the gender, as proportional to the cav data set.
-  # sex <- as.integer(runif(1,0,1) < propMale)
+  sex <- as.integer(runif(1,0,1) < propMale)
 
   # Sample for an initial state.
   trueState <- sample(1:4, size=1, prob=initProbs)
@@ -192,8 +192,8 @@ for(i in 1:N){
   while(s < 4){
 
     # Infinitesimal transition rates.
-    # qmat <- Q(time1,sex,betaMat)
-    qmat <- Q(time1,betaMat)
+    qmat <- Q(time1,sex,betaMat)
+    # qmat <- Q(time1,betaMat)
 
     # Possible next states.
     moveToStates <- which(qmat[s,] > 0)
@@ -235,22 +235,22 @@ for(i in 1:N){
 
     ptnum <- rep(i,n_i)
     years <- visitTimes
-    # rawData <- rbind( rawData, data.frame(ptnum,years,sex,state) )
-    rawData <- rbind( rawData, data.frame(ptnum,years,state) )
+    rawData <- rbind( rawData, data.frame(ptnum,years,sex,state) )
+    # rawData <- rbind( rawData, data.frame(ptnum,years,state) )
     if(4 %in% state){  propDeaths_sim <- propDeaths_sim + 1  }
     NumObs_sim <- c( NumObs_sim, n_i)
   }
 
 }
 
-# colnames(rawData) <- c('ptnum','years','sex','state')
-colnames(rawData) <- c('ptnum','years','state')
+colnames(rawData) <- c('ptnum','years','sex','state')
+# colnames(rawData) <- c('ptnum','years','state')
 N <- length(unique(rawData$ptnum))
 propDeaths_sim <- propDeaths_sim / N
 
 
 # Add noise to the states.
-for(i in 1:nrow(rawData)){	rawData$state[i] <- sample(1:4, size=1, prob=errorMat[rawData$state[i],])  }
+# for(i in 1:nrow(rawData)){	rawData$state[i] <- sample(1:4, size=1, prob=errorMat[rawData$state[i],])  }
 
 #----------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------
@@ -269,18 +269,18 @@ disc_time <- sapply(rawData$years, floor_new, p = p)
 obstrue <- rep(0,nrow(rawData))
 
 hold <- cbind(rawData,obstrue,disc_time)
-# hold <- hold[,c('ptnum','years','disc_time','sex','state','obstrue')]
-hold <- hold[,c('ptnum','years','disc_time','state','obstrue')]
+hold <- hold[,c('ptnum','years','disc_time','sex','state','obstrue')]
+# hold <- hold[,c('ptnum','years','disc_time','state','obstrue')]
 
 tempRow <- rep(0,ncol(hold))
-# names(tempRow) <- c('ptnum','years','disc_time','sex','state','obstrue')
-names(tempRow) <- c('ptnum','years','disc_time','state','obstrue')
+names(tempRow) <- c('ptnum','years','disc_time','sex','state','obstrue')
+# names(tempRow) <- c('ptnum','years','disc_time','state','obstrue')
 
 num <- 1
 cavData = hold
 
-# colnames(cavData) <- c('ptnum','years','disc_time','sex','state','obstrue')
-colnames(cavData) <- c('ptnum','years','disc_time','state','obstrue')
+colnames(cavData) <- c('ptnum','years','disc_time','sex','state','obstrue')
+# colnames(cavData) <- c('ptnum','years','disc_time','state','obstrue')
 rownames(cavData) <- NULL
 
 save(cavData, file=paste("DataOut/cavData", num_iter, ".rda", sep=''))
