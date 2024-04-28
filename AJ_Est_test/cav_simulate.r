@@ -57,8 +57,6 @@ print(num_iter)
 # p = 3 --> update every year
 # p = 4 --> update every other year
 
-folder_name = c("Continuous", "Month", "Year", "YearTwo")
-
 # Set the sample size.  Note that the true cav data set has 622 subjects.
 N <- 2000
 # Choose the discretization of time.
@@ -66,20 +64,26 @@ dt <- 1/365
 
 # The true values are set as the posterior means of the thinned last 15,000 steps
 # from running the MCMC routine using the numerical ODE solution (seed 10).
-load('../Time_Capsuled_Code_JCGS/real_cav_analysis/Model_out/deSolve/mcmc_out_10.rda')
-chain = mcmc_out$chain[10000:25001, ]
-ind_keep = seq(1, nrow(chain), by=10)
-chain = chain[ind_keep, ]
-
-trueValues = colMeans(chain)
-# The true values corresponding to the slope coefficient on time are scaled by
-# 3 in order to magnify the effect of the different approaches to modelling 
-# continuous time HMMs.
-
-trueValues[6:10] = 3 * trueValues[6:10]
-save(trueValues, file = paste0("DataOut/trueValues_", num_iter, ".rda"))
+# load('../Time_Capsuled_Code_JCGS/real_cav_analysis/Model_out/deSolve/mcmc_out_10.rda')
+# chain = mcmc_out$chain[10000:25001, ]
+# ind_keep = seq(1, nrow(chain), by=10)
+# chain = chain[ind_keep, ]
+# 
+# trueValues = colMeans(chain)
+# # The true values corresponding to the slope coefficient on time are scaled by
+# # 3 in order to magnify the effect of the different approaches to modelling 
+# # continuous time HMMs.
+# 
+# # trueValues[6:10] = 3 * trueValues[6:10]
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
+
+# trueValues[1:5] = c(-3,-6,-3,-6,-5)
+# trueValues[6:10] = rnorm(5)
+# trueValues[11:15] = rnorm(5, mean = 0, sd = 0.5)
+# trueValues[par_index$pi_logit] = c(-0.5,-0.5)
+# save(trueValues, file = paste0("DataOut/trueValues_", num_iter, ".rda"))
+load('DataOut/trueValues_4.rda')
 
 betaMat <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 
@@ -179,8 +183,9 @@ for(i in 1:N){
 
   print(i)
 
-  # # Sample the gender, as proportional to the cav data set.
-  sex <- as.integer(runif(1,0,1) < propMale)
+  # Sample the gender, as proportional to the cav data set.
+  # sex <- as.integer(runif(1,0,1) < propMale)
+  sex <- sample(c(0,1), size = 1)
 
   # Sample for an initial state.
   trueState <- sample(1:4, size=1, prob=initProbs)
@@ -285,57 +290,20 @@ rownames(cavData) <- NULL
 
 save(cavData, file=paste("DataOut/cavData", num_iter, ".rda", sep=''))
 
-#-------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------
-# Compute the frequencies of observed transitions.
-#-------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------
-
-# Transition frequencies for the true cav data set.
-if (p == 1) {
-    nTrans <- rep(0,5)
-    for(i in 1:N_cav){
-
-    	subject <- cav[cav$PTNUM==unique(cav$PTNUM)[i],,drop=FALSE]
-
-    	if(4 %in% subject$state){
-    		if( max(setdiff(subject$state,4)) == 1){nTrans[2] = nTrans[2] +1}
-    		if( max(setdiff(subject$state,4)) == 2){nTrans[4] = nTrans[4] +1}
-    		if( max(setdiff(subject$state,4)) == 3){nTrans[5] = nTrans[5] +1}
-    	}
-
-    	if(   1 %in% subject$state   &   2 %in% subject$state   ){ nTrans[1] = nTrans[1] +1 }
-    	if(   2 %in% subject$state   &   3 %in% subject$state   ){ nTrans[3] = nTrans[3] +1 }
+obs_trans <- function(df) {
+    count_transitions = matrix(0, nrow=4, ncol=4)
+    total_trans = 0
+    for(i in unique(df[,"ptnum"])){
+        
+        b_i_mle = c(df[df[,"ptnum"] == i, 'state'])
+        
+        for(t in 1:(length(b_i_mle) - 1)) {
+            count_transitions[b_i_mle[t], b_i_mle[t+1]] = 
+                count_transitions[b_i_mle[t], b_i_mle[t+1]] + 1
+            total_trans = total_trans + 1
+        }
     }
-
-    cat('Cav data set sample size                               = ', N_cav,'\n')
-    cat('Cav data set transition fequencies                     = ', nTrans / sum(nTrans),'\n')
-    cat('Cav data set transition counts                         = ', nTrans,'\n')
-    cat('Cav data set proportion of observed deaths             = ', propDeaths,'\n')
-    cat('Cav data set quantiles of number of observations       = ','\n')
-    print(quantile(NumObs))
-    cat('\n')
+    print(count_transitions)   
 }
-# Transition frequencies for the simulated data set.
-obs_cavData <- cavData[cavData$obstrue == 0, ]
-nTrans_sim <- rep(0,5)
-for(i in unique(obs_cavData$ptnum)){
 
-	subject <- obs_cavData[obs_cavData$ptnum==i,,drop=FALSE]
-
-	if(4 %in% subject$state){
-		if( max(setdiff(subject$state,4)) == 1){nTrans_sim[2] = nTrans_sim[2] +1}
-		if( max(setdiff(subject$state,4)) == 2){nTrans_sim[4] = nTrans_sim[4] +1}
-		if( max(setdiff(subject$state,4)) == 3){nTrans_sim[5] = nTrans_sim[5] +1}
-	}
-
-	if(   1 %in% subject$state   &   2 %in% subject$state   ){ nTrans_sim[1] = nTrans_sim[1] +1 }
-	if(   2 %in% subject$state   &   3 %in% subject$state   ){ nTrans_sim[3] = nTrans_sim[3] +1 }
-}
-cat('Simulated data set sample size                         = ', N,'\n')
-cat('Simulated data set transition fequencies               = ', nTrans_sim / sum(nTrans_sim),'\n')
-cat('Simulated data set transition counts                   = ', nTrans_sim,'\n')
-cat('Simulated data set proportion of observed deaths       = ', propDeaths_sim,'\n')
-cat('Simulated data set quantiles of number of observations = ','\n')
-print(quantile(NumObs_sim))
-print(sum(cavData$obstrue == 0))
+obs_trans(cavData)

@@ -1,3 +1,4 @@
+library(AalenJohansen)
 # ------------------------------------------------------------------------------
 # Function to calculate Aalen-Johansen estimator -------------------------------
 # ------------------------------------------------------------------------------
@@ -97,7 +98,7 @@ load(paste0('DataOut/cavData', it, '.rda'))
 
 obs_trans(cavData)
 
-load(paste0('DataOut/trueValues_', it, '.rda'))
+load(paste0('DataOut/trueValues_4.rda'))
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
@@ -108,10 +109,11 @@ p_ic <- c(p1=1,p2=0,p3=0,p4=0,p5=1,p6=0,p7=0,p8=1,p9=0) # initial condition
 
 beta <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 
+beta_estimates = vector(mode = 'list', length = 2)
 for(s in 0:1) {
-    # AJ_list = aj_estimate(t1, t2, cavData, s)
-    # save(AJ_list, file = paste0("DataOut/AJ_list_sex_", s, "_", it, ".rda"))   
-    load(paste0("DataOut/AJ_list_sex_", s, "_", it, ".rda"))
+    AJ_list = aj_estimate(t1, t2, cavData, s)
+    # save(AJ_list, file = paste0("DataOut/AJ_list_sex_", s, "_", it, ".rda"))
+    # load(paste0("DataOut/AJ_list_sex_", s, "_", it, ".rda"))
     
     # Store the time points and estimted transition rates and fit a regression line
     # beta_est_list[[i]][[j]] is the estimated transition rates for the i -> j transition
@@ -162,29 +164,154 @@ for(s in 0:1) {
         q_comp[[5]] = NULL
     }
     
-    pdf(paste0("Plots/beta_plot_sex_", s, "_", it, ".pdf"))
-    par(mfrow = c(3,2))
+    beta_estimates[[s+1]] = matrix(ncol = 2, nrow = length(q_comp))
+    
+    # pdf(paste0("Plots/beta_plot_sex_", s, "_", it, ".pdf"))
+    # par(mfrow = c(3,2))
     for(q in 1:length(q_comp)) {
         if(!is.null(q_comp[[q]])) {
             m1 = lm(q_comp[[q]][,2] ~ q_comp[[q]][,1])
+            beta_estimates[[s+1]][q, ] = c(m1$coefficients[1], m1$coefficients[2])
+            
             if(s == 0) {
-                title_est = paste0("beta0 = ", round(m1$coefficients[1], digits = 4), 
+                title_est = paste0("beta0 = ", round(m1$coefficients[1], digits = 4),
                                    ", beta1 = ", round(m1$coefficients[2], digits = 4))
-                sub_title = paste0("beta0 = ", round(beta[q,1], digits = 4), 
+                sub_title = paste0("beta0 = ", round(beta[q,1], digits = 4),
                                    ", beta1 = ", round(beta[q,2], digits = 4))
             } else {
-                title_est = paste0("beta0 = ", round(m1$coefficients[1], digits = 4), 
+                title_est = paste0("beta0 = ", round(m1$coefficients[1], digits = 4),
                                    ", beta1 = ", round(m1$coefficients[2], digits = 4))
-                sub_title = paste0("beta0 = ", round(beta[q,1] + beta[q,3], digits = 4), 
-                                   ", beta1 = ", round(beta[q,2], digits = 4))   
+                sub_title = paste0("beta0 = ", round(beta[q,1] + beta[q,3], digits = 4),
+                                   ", beta1 = ", round(beta[q,2], digits = 4))
             }
-            plot(q_comp[[q]][,1], q_comp[[q]][,2], xlab = "time", 
-                 ylab = paste0("log(q",q,")"), main = title_est, sub = sub_title, col.sub = 'blue')
-            abline(m1, col = 'red')      
+            # plot(q_comp[[q]][,1], q_comp[[q]][,2], xlab = "time",
+            #      ylab = paste0("log(q",q,")"), main = title_est, sub = sub_title, col.sub = 'blue')
+            # abline(m1, col = 'red')
         } else {
-            plot.new()
+            # plot.new()
         }
     }
-    dev.off()
+    # dev.off()
     
 }
+
+save(beta_estimates, file = paste0("DataOut/beta_estimates_", it, ".rda"))
+
+# ------------------------------------------------------------------------------
+# Comparing Numerical Integration to Product Integration -----------------------
+# ------------------------------------------------------------------------------
+
+library(deSolve, quietly=T)
+Q <- function(time,sex,betaMat){
+
+    q1  = exp( c(1,time,sex) %*% betaMat[1,] )  # Transition from state 1 to state 2.
+    q2  = exp( c(1,time,sex) %*% betaMat[2,] )  # Transition from state 1 to death.
+    q3  = exp( c(1,time,sex) %*% betaMat[3,] )  # Transition from state 2 to state 3.
+    q4  = exp( c(1,time,sex) %*% betaMat[4,] )  # Transition from state 2 to death.
+    q5  = exp( c(1,time,sex) %*% betaMat[5,] )  # Transition from state 3 to death.
+
+    qmat = matrix(c( 0,q1, 0,q2,
+                     0, 0,q3,q4,
+                     0, 0, 0,q5,
+                     0, 0, 0, 0),nrow=4,byrow=TRUE)
+    diag(qmat) = -rowSums(qmat)
+
+    return(qmat)
+}
+
+model_t <- function(t,p,parms) {
+
+    betaMat <- matrix(parms$b, ncol = 3, byrow = F)
+
+    q1  = exp( c(1,t,parms$x_ik) %*% betaMat[1,] )  # Transition from state 1 to state 2.
+    q2  = exp( c(1,t,parms$x_ik) %*% betaMat[2,] )  # Transition from state 1 to death.
+    q3  = exp( c(1,t,parms$x_ik) %*% betaMat[3,] )  # Transition from state 2 to state 3.
+    q4  = exp( c(1,t,parms$x_ik) %*% betaMat[4,] )  # Transition from state 2 to death.
+    q5  = exp( c(1,t,parms$x_ik) %*% betaMat[5,] )  # Transition from state 3 to death.
+
+    dP = rep(1,9) # this is the vector with all differential equations
+
+    dP[1] = p[1]*(-q1-q2)
+    dP[2] = p[1]*q1 + p[2]*(-q3-q4)
+    dP[3] = p[2]*q3 - p[3]*q5
+    dP[4] = p[1]*q2 + p[2]*q4 + p[3]*q5
+    dP[5] = p[5]*(-q3-q4)
+    dP[6] = p[5]*q3 - p[6]*q5
+    dP[7] = p[5]*q4 + p[6]*q5
+    dP[8] = -p[8]*q5
+    dP[9] = p[8]*q5
+
+    return(list(dP))
+
+}
+                    
+p_ic <- c(p1=1,p2=0,p3=0,p4=0,p5=1,p6=0,p7=0,p8=1,p9=0) # initial condition
+
+t1 = 0
+t2 = 5
+
+load(paste0('DataOut/trueValues_4.rda'))
+par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
+beta <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
+initProbs_temp = c( 1, exp(trueValues[par_index$pi_logit][1]), exp(trueValues[par_index$pi_logit][2]), 0)
+initProbs = initProbs_temp / sum(initProbs_temp)
+
+out1 <- deSolve::ode(p_ic, times = c(t1,t2), func = model_t,
+                     parms = list(b=c(beta), x_ik = 1))
+
+P_desolve1 <- matrix(c(out1[2,"p1"], out1[2,"p2"], out1[2,"p3"], out1[2,"p4"],
+                      0, out1[2,"p5"], out1[2,"p6"], out1[2,"p7"],
+                      0,  0, out1[2,"p8"], out1[2,"p9"],
+                      0,  0,  0,  1), nrow = 4, byrow = T)
+
+out0 <- deSolve::ode(p_ic, times = c(t1,t2), func = model_t,
+                     parms = list(b=c(beta), x_ik = 0))
+
+P_desolve0 <- matrix(c(out0[2,"p1"], out0[2,"p2"], out0[2,"p3"], out0[2,"p4"],
+                      0, out0[2,"p5"], out0[2,"p6"], out0[2,"p7"],
+                      0,  0, out0[2,"p8"], out0[2,"p9"],
+                      0,  0,  0,  1), nrow = 4, byrow = T)
+
+library(AalenJohansen)
+P_prodInt_list1 <- prodint(t1, t2, 0.01, function(t){Q(t, sex = 1, betaMat = beta)})
+P_prodInt_list0 <- prodint(t1, t2, 0.01, function(t){Q(t, sex = 0, betaMat = beta)})
+P_prodInt1 = P_prodInt_list1[[length(P_prodInt_list1)]]
+P_prodInt0 = P_prodInt_list0[[length(P_prodInt_list0)]]
+
+print(P_desolve1); print(P_prodInt1)
+print(P_desolve0); print(P_prodInt0)
+
+# Format the simulated data into the form for AalenJohansen
+load(paste0('DataOut/cavData', 4, '.rda'))
+eid = unique(cavData$ptnum)
+cavData_aj = vector(mode = 'list', length = length(eid))
+for(i in 1:length(cavData_aj)) {
+    sub_dat = cavData[cavData$ptnum == eid[i], ]
+    cavData_aj[[i]] = list(times = sub_dat$years, states = sub_dat$state, X = sub_dat$sex[1])
+}
+
+fit1 <- aalen_johansen(cavData_aj, x = 1)
+fit0 <- aalen_johansen(cavData_aj, x = 0)
+
+v11 <- unlist(lapply(fit1$Lambda, FUN = function(L) L[1,2]))
+v10 <- fit1$t
+v21 <- unlist(lapply(fit0$Lambda, FUN = function(L) L[1,2]))
+v20 <- fit0$t
+
+p1 <- unlist(lapply(fit1$p, FUN = function(L) L[2]))
+P1 <- unlist(lapply(prodint(0, 15, 0.01, function(t){Q(t, sex = 1, betaMat = beta)}),
+                    FUN = function(L) (initProbs %*% L)[2]))
+p2 <- unlist(lapply(fit0$p, FUN = function(L) L[2]))
+P2 <- unlist(lapply(prodint(0, 15, 0.01, function(t){Q(t, sex = 0, betaMat = beta)}),
+                    FUN = function(L) (initProbs %*% L)[2]))
+
+par(mfrow = c(1, 2))
+par(mar = c(2.5, 2.5, 1.5, 1.5))
+
+plot(v10, v11, type = "l", lty = 2, xlab = "", ylab = "", main = "Hazard", col = "red")
+lines(v20, v21, lty = 2, col = "blue")
+
+plot(v10, p1, type = "l", lty = 2, xlab = "", ylab = "", main = "Probability", col = "red")
+lines(seq(0, 15, 0.01), P1, col = "red")
+lines(v20, p2, lty = 2, col = "blue")
+lines(seq(0, 15, 0.01), P2, col = "blue")
