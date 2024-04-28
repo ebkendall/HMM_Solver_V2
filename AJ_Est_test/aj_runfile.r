@@ -293,10 +293,20 @@ for(i in 1:length(cavData_aj)) {
 fit1 <- aalen_johansen(cavData_aj, x = 1)
 fit0 <- aalen_johansen(cavData_aj, x = 0)
 
-v11 <- unlist(lapply(fit1$Lambda, FUN = function(L) L[1,2]))
-v10 <- fit1$t
-v21 <- unlist(lapply(fit0$Lambda, FUN = function(L) L[1,2]))
-v20 <- fit0$t
+v1_12 <- unlist(lapply(fit1$Lambda, FUN = function(L) L[1,2]))
+v1_14 <- unlist(lapply(fit1$Lambda, FUN = function(L) L[1,4]))
+v1_23 <- unlist(lapply(fit1$Lambda, FUN = function(L) L[2,3]))
+v1_24 <- unlist(lapply(fit1$Lambda, FUN = function(L) L[2,4]))
+v1_34 <- unlist(lapply(fit1$Lambda, FUN = function(L) L[3,4]))
+
+v0_12 <- unlist(lapply(fit0$Lambda, FUN = function(L) L[1,2]))
+v0_14 <- unlist(lapply(fit0$Lambda, FUN = function(L) L[1,4]))
+v0_23 <- unlist(lapply(fit0$Lambda, FUN = function(L) L[2,3]))
+v0_24 <- unlist(lapply(fit0$Lambda, FUN = function(L) L[2,4]))
+v0_34 <- unlist(lapply(fit0$Lambda, FUN = function(L) L[3,4]))
+
+v1_t <- fit1$t
+v0_t <- fit0$t
 
 p1 <- unlist(lapply(fit1$p, FUN = function(L) L[2]))
 P1 <- unlist(lapply(prodint(0, 15, 0.01, function(t){Q(t, sex = 1, betaMat = beta)}),
@@ -305,13 +315,28 @@ p2 <- unlist(lapply(fit0$p, FUN = function(L) L[2]))
 P2 <- unlist(lapply(prodint(0, 15, 0.01, function(t){Q(t, sex = 0, betaMat = beta)}),
                     FUN = function(L) (initProbs %*% L)[2]))
 
-par(mfrow = c(1, 2))
+pdf("Plots/q_AJ.pdf")
+par(mfrow = c(3, 2))
 par(mar = c(2.5, 2.5, 1.5, 1.5))
 
-plot(v10, v11, type = "l", lty = 2, xlab = "", ylab = "", main = "Hazard", col = "red")
-lines(v20, v21, lty = 2, col = "blue")
+plot(v1_t, v1_12, type = "l", lty = 2, xlab = "", ylab = "", 
+     main = "Hazard (1->2)", col = "red", ylim = c(min(v1_12, v0_12), max(v1_12, v0_12)))
+lines(v0_t, v0_12, lty = 2, col = "blue")
+plot(v1_t, v1_14, type = "l", lty = 2, xlab = "", ylab = "", 
+     main = "Hazard (1->4)", col = "red", ylim = c(min(v1_14, v0_14), max(v1_14, v0_14)))
+lines(v0_t, v0_14, lty = 2, col = "blue")
+plot(v1_t, v1_23, type = "l", lty = 2, xlab = "", ylab = "", 
+     main = "Hazard (2->3)", col = "red", ylim = c(min(v1_23, v0_23), max(v1_23, v0_23)))
+lines(v0_t, v0_23, lty = 2, col = "blue")
+plot(v1_t, v1_24, type = "l", lty = 2, xlab = "", ylab = "", 
+     main = "Hazard (2->4)", col = "red", ylim = c(min(v1_24, v0_24), max(v1_24, v0_24)))
+lines(v0_t, v0_24, lty = 2, col = "blue")
+plot(v1_t, v1_34, type = "l", lty = 2, xlab = "", ylab = "", 
+     main = "Hazard (3->4)", col = "red", ylim = c(min(v1_34, v0_34), max(v1_34, v0_34)))
+lines(v0_t, v0_34, lty = 2, col = "blue")
 
-plot(v10, p1, type = "l", lty = 2, xlab = "", ylab = "", main = "Probability", col = "red")
-lines(seq(0, 15, 0.01), P1, col = "red")
-lines(v20, p2, lty = 2, col = "blue")
-lines(seq(0, 15, 0.01), P2, col = "blue")
+dev.off()
+# plot(v10, p1, type = "l", lty = 2, xlab = "", ylab = "", main = "Probability", col = "red")
+# lines(seq(0, 15, 0.01), P1, col = "red")
+# lines(v20, p2, lty = 2, col = "blue")
+# lines(seq(0, 15, 0.01), P2, col = "blue")
