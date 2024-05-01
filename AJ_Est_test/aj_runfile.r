@@ -1,4 +1,3 @@
-library(AalenJohansen)
 # ------------------------------------------------------------------------------
 # Function to calculate Aalen-Johansen estimator -------------------------------
 # ------------------------------------------------------------------------------
@@ -282,60 +281,152 @@ print(P_desolve1); print(P_prodInt1)
 print(P_desolve0); print(P_prodInt0)
 
 # Format the simulated data into the form for AalenJohansen
-load(paste0('DataOut/cavData', 4, '.rda'))
-eid = unique(cavData$ptnum)
-cavData_aj = vector(mode = 'list', length = length(eid))
-for(i in 1:length(cavData_aj)) {
-    sub_dat = cavData[cavData$ptnum == eid[i], ]
-    cavData_aj[[i]] = list(times = sub_dat$years, states = sub_dat$state, X = sub_dat$sex[1])
+par_est = vector(mode = 'list', length = 100)
+for(it in 1:100) {
+    print(it)
+    load(paste0('DataOut/cavData', it, '.rda'))
+    eid = unique(cavData$ptnum)
+    cavData_aj = vector(mode = 'list', length = length(eid))
+    for(i in 1:length(cavData_aj)) {
+        sub_dat = cavData[cavData$ptnum == eid[i], ]
+        cavData_aj[[i]] = list(times = sub_dat$years, states = sub_dat$state, X = sub_dat$sex[1])
+    }
+    
+    fit1 <- aalen_johansen(cavData_aj, x = 1)
+    fit0 <- aalen_johansen(cavData_aj, x = 0)
+    
+    v1 = list()
+    v1[[1]] <- unlist(lapply(fit1$Lambda, FUN = function(L) L[1,2]))
+    v1[[2]] <- unlist(lapply(fit1$Lambda, FUN = function(L) L[1,4]))
+    v1[[3]] <- unlist(lapply(fit1$Lambda, FUN = function(L) L[2,3]))
+    v1[[4]] <- unlist(lapply(fit1$Lambda, FUN = function(L) L[2,4]))
+    v1[[5]] <- unlist(lapply(fit1$Lambda, FUN = function(L) L[3,4]))
+    
+    v0 = list()
+    v0[[1]] <- unlist(lapply(fit0$Lambda, FUN = function(L) L[1,2]))
+    v0[[2]] <- unlist(lapply(fit0$Lambda, FUN = function(L) L[1,4]))
+    v0[[3]] <- unlist(lapply(fit0$Lambda, FUN = function(L) L[2,3]))
+    v0[[4]] <- unlist(lapply(fit0$Lambda, FUN = function(L) L[2,4]))
+    v0[[5]] <- unlist(lapply(fit0$Lambda, FUN = function(L) L[3,4]))
+    
+    
+    v1_t <- fit1$t
+    v0_t <- fit0$t
+    
+    if(length(v1_t) > length(v0_t)) {
+        if(sum(v0_t %in% v1_t) != length(v0_t)) print(paste0(it, ": different times"))
+    } else {
+        if(sum(v1_t %in% v0_t) != length(v1_t)) print(paste0(it, ": different times"))
+    }
+    
+    v_both = list()
+    for(jj in 1:5) {
+        df0 = data.frame("y" = v0[[jj]], "t" = v0_t, "x" = rep(0, length(v0_t)))
+        df1 = data.frame("y" = v1[[jj]], "t" = v1_t, "x" = rep(1, length(v1_t)))
+        df_tot = rbind(df0, df1)
+        
+        df_tot = df_tot[-which(df_tot$y == 0),]
+        df_tot$y = log(df_tot$y)
+        v_both[[jj]] = df_tot
+    }
+    
+    coeff_sum = matrix(nrow = 5, ncol = 3)
+    for(jj in 1:5) {
+        if(nrow(v_both[[jj]]) > 0) {
+            lm_1 = lm(y ~ t + x, data = v_both[[jj]])
+            coeff_sum[jj,] = lm_1$coefficients   
+        } else {
+            print(paste0("No transitions for ", it, " transition ", jj))
+        }
+    }
+    
+    par_est[[it]] = coeff_sum
+    
 }
 
-fit1 <- aalen_johansen(cavData_aj, x = 1)
-fit0 <- aalen_johansen(cavData_aj, x = 0)
+par_est_mat = matrix(nrow = 100, ncol = 15)
+for(i in 1:100) {
+    par_est_mat[i,] = c(par_est[[i]])
+}
 
-v1_12 <- unlist(lapply(fit1$Lambda, FUN = function(L) L[1,2]))
-v1_14 <- unlist(lapply(fit1$Lambda, FUN = function(L) L[1,4]))
-v1_23 <- unlist(lapply(fit1$Lambda, FUN = function(L) L[2,3]))
-v1_24 <- unlist(lapply(fit1$Lambda, FUN = function(L) L[2,4]))
-v1_34 <- unlist(lapply(fit1$Lambda, FUN = function(L) L[3,4]))
+labels <- c('baseline S1 (well)   --->   S2 (mild)',
+            'baseline S1 (well)   --->   S4 (dead)',
+            'baseline S2 (mild)   --->   S3 (severe)',
+            'baseline S2 (mild)   --->   S4 (dead)',
+            'baseline S3 (severe)   --->   S4 (dead)',
+            'time S1 (well)   --->   S2 (mild)',
+            'time S1 (well)   --->   S4 (dead)',
+            'time S2 (mild)   --->   S3 (severe)',
+            'time S2 (mild)   --->   S4 (dead)',
+            'time S3 (severe)   --->   S4 (dead)',
+            'sex S1 (well)   --->   S2 (mild)',
+            'sex S1 (well)   --->   S4 (dead)',
+            'sex S2 (mild)   --->   S3 (severe)',
+            'sex S2 (mild)   --->   S4 (dead)',
+            'sex S3 (severe)   --->   S4 (dead)')
 
-v0_12 <- unlist(lapply(fit0$Lambda, FUN = function(L) L[1,2]))
-v0_14 <- unlist(lapply(fit0$Lambda, FUN = function(L) L[1,4]))
-v0_23 <- unlist(lapply(fit0$Lambda, FUN = function(L) L[2,3]))
-v0_24 <- unlist(lapply(fit0$Lambda, FUN = function(L) L[2,4]))
-v0_34 <- unlist(lapply(fit0$Lambda, FUN = function(L) L[3,4]))
+# Plot and save the mcmc trace plots and histograms.
+library(tidyverse)
+library(gridExtra)
+library(latex2exp)
+pdf(paste0('Plots/par_est_ideal.pdf'))
 
-v1_t <- fit1$t
-v0_t <- fit0$t
+VP <- vector(mode="list", length = length(labels))
+for(r in 1:length(labels)) {
+    # Adding the boxplots
+    yVar = par_est_mat[,r]
+    disc_type = rep(1, nrow(par_est_mat))
+    x_label = paste0("Parameter Value: ", round(trueValues[r], 3))
+    truth_par = trueValues[r]
+    
+    plot_df = data.frame(yVar = yVar, disc_type = disc_type)
+    VP[[r]] = ggplot(plot_df, aes(x=disc_type, y = yVar)) +
+        geom_violin(trim=FALSE) +
+        geom_boxplot(width=0.1) +
+        ggtitle(labels[r]) +
+        ylab(" ") +
+        xlab(x_label) +
+        geom_hline(yintercept=truth_par, linetype="dashed", color = "red") +
+        theme(text = element_text(size = 7))
+}
 
-p1 <- unlist(lapply(fit1$p, FUN = function(L) L[2]))
-P1 <- unlist(lapply(prodint(0, 15, 0.01, function(t){Q(t, sex = 1, betaMat = beta)}),
-                    FUN = function(L) (initProbs %*% L)[2]))
-p2 <- unlist(lapply(fit0$p, FUN = function(L) L[2]))
-P2 <- unlist(lapply(prodint(0, 15, 0.01, function(t){Q(t, sex = 0, betaMat = beta)}),
-                    FUN = function(L) (initProbs %*% L)[2]))
-
-pdf("Plots/q_AJ.pdf")
-par(mfrow = c(3, 2))
-par(mar = c(2.5, 2.5, 1.5, 1.5))
-
-plot(v1_t, v1_12, type = "l", lty = 2, xlab = "", ylab = "", 
-     main = "Hazard (1->2)", col = "red", ylim = c(min(v1_12, v0_12), max(v1_12, v0_12)))
-lines(v0_t, v0_12, lty = 2, col = "blue")
-plot(v1_t, v1_14, type = "l", lty = 2, xlab = "", ylab = "", 
-     main = "Hazard (1->4)", col = "red", ylim = c(min(v1_14, v0_14), max(v1_14, v0_14)))
-lines(v0_t, v0_14, lty = 2, col = "blue")
-plot(v1_t, v1_23, type = "l", lty = 2, xlab = "", ylab = "", 
-     main = "Hazard (2->3)", col = "red", ylim = c(min(v1_23, v0_23), max(v1_23, v0_23)))
-lines(v0_t, v0_23, lty = 2, col = "blue")
-plot(v1_t, v1_24, type = "l", lty = 2, xlab = "", ylab = "", 
-     main = "Hazard (2->4)", col = "red", ylim = c(min(v1_24, v0_24), max(v1_24, v0_24)))
-lines(v0_t, v0_24, lty = 2, col = "blue")
-plot(v1_t, v1_34, type = "l", lty = 2, xlab = "", ylab = "", 
-     main = "Hazard (3->4)", col = "red", ylim = c(min(v1_34, v0_34), max(v1_34, v0_34)))
-lines(v0_t, v0_34, lty = 2, col = "blue")
+grid.arrange(VP[[1]], VP[[2]], VP[[3]], VP[[4]], VP[[5]], ncol=2, nrow =3)
+grid.arrange(VP[[6]], VP[[7]], VP[[8]], VP[[9]], VP[[10]], ncol=2, nrow =3)
+grid.arrange(VP[[11]], VP[[12]], VP[[13]], VP[[14]], VP[[15]], ncol=2, nrow =3)
 
 dev.off()
+
+# p1 <- unlist(lapply(fit1$p, FUN = function(L) L[2]))
+# P1 <- unlist(lapply(prodint(0, 15, 0.01, function(t){Q(t, sex = 1, betaMat = beta)}),
+#                     FUN = function(L) (initProbs %*% L)[2]))
+# p2 <- unlist(lapply(fit0$p, FUN = function(L) L[2]))
+# P2 <- unlist(lapply(prodint(0, 15, 0.01, function(t){Q(t, sex = 0, betaMat = beta)}),
+#                     FUN = function(L) (initProbs %*% L)[2]))
+# 
+# pdf("Plots/q_AJ.pdf")
+# par(mfrow = c(3, 2))
+# par(mar = c(2.5, 2.5, 1.5, 1.5))
+# 
+# plot(v1_t, v1_12, type = "l", lty = 2, xlab = "", ylab = "", lwd = 3, 
+#      main = "Hazard (1->2)", col = "red", ylim = c(min(v1_12, v0_12), max(v1_12, v0_12)))
+# lines(v0_t, v0_12, lty = 2, col = "blue", lwd = 3, )
+# 
+# 
+# plot(v1_t, v1_14, type = "l", lty = 2, xlab = "", ylab = "", lwd = 3,  
+#      main = "Hazard (1->4)", col = "red", ylim = c(min(v1_14, v0_14), max(v1_14, v0_14)))
+# lines(v0_t, v0_14, lty = 2, col = "blue", lwd = 3, )
+# plot(v1_t, v1_23, type = "l", lty = 2, xlab = "", ylab = "", lwd = 3,  
+#      main = "Hazard (2->3)", col = "red", ylim = c(min(v1_23, v0_23), max(v1_23, v0_23)))
+# lines(v0_t, v0_23, lty = 2, col = "blue", lwd = 3, )
+# plot(v1_t, v1_24, type = "l", lty = 2, xlab = "", ylab = "", lwd = 3,  
+#      main = "Hazard (2->4)", col = "red", ylim = c(min(v1_24, v0_24), max(v1_24, v0_24)))
+# lines(v0_t, v0_24, lty = 2, col = "blue", lwd = 3, )
+# plot(v1_t, v1_34, type = "l", lty = 2, xlab = "", ylab = "", lwd = 3,  
+#      main = "Hazard (3->4)", col = "red", ylim = c(min(v1_34, v0_34), max(v1_34, v0_34)))
+# lines(v0_t, v0_34, lty = 2, col = "blue", lwd = 3, )
+# 
+# dev.off()
+
 # plot(v10, p1, type = "l", lty = 2, xlab = "", ylab = "", main = "Probability", col = "red")
 # lines(seq(0, 15, 0.01), P1, col = "red")
 # lines(v20, p2, lty = 2, col = "blue")
