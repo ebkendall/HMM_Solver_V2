@@ -5,7 +5,7 @@ library(latex2exp)
 
 index_seeds = 1:100
 
-load('DataOut/trueValues_4.rda')
+load('DataOut/trueValues.rda')
 true_beta = matrix(trueValues[1:15], ncol = 3)
 
 labels <- c('baseline S1 (well)   --->   S2 (mild)',

@@ -97,7 +97,7 @@ load(paste0('DataOut/cavData', it, '.rda'))
 
 obs_trans(cavData)
 
-load(paste0('DataOut/trueValues_4.rda'))
+load(paste0('DataOut/trueValues.rda'))
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
@@ -249,7 +249,7 @@ p_ic <- c(p1=1,p2=0,p3=0,p4=0,p5=1,p6=0,p7=0,p8=1,p9=0) # initial condition
 t1 = 0
 t2 = 5
 
-load(paste0('DataOut/trueValues_4.rda'))
+load(paste0('DataOut/trueValues.rda'))
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 beta <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 initProbs_temp = c( 1, exp(trueValues[par_index$pi_logit][1]), exp(trueValues[par_index$pi_logit][2]), 0)
