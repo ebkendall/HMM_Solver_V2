@@ -48,7 +48,7 @@ censor_times <- function(t, p) {
 library(msm)
 
 # args = commandArgs(TRUE)
-# num_iter = as.numeric(args[1]) 
+# num_iter = as.numeric(args[1])
 num_iter = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
 
 print(paste0("iteration ", num_iter))
@@ -62,7 +62,7 @@ print(num_iter)
 # p = 4 --> update every other year
 
 # Set the sample size.  Note that the true cav data set has 622 subjects.
-N <- 2000
+N <- 4000
 # Choose the discretization of time.
 dt <- 1/365
 
@@ -81,17 +81,12 @@ par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 # # continuous time HMMs.
 # 
 # # trueValues[6:10] = 3 * trueValues[6:10]
+# trueValues[7] = -0.5
+# trueValues[par_index$pi_logit] = c(0, 0)
 # 
-# trueValues[par_index$beta] = c(-2, -2, -2, -2, -2,
-#                0.2167549, -0.5424926,  0.8911446, 0.5959806, 1.6356180,
-#                0.3446377, -0.6406233, -0.1065723, 0.9482699, 0.8884316)
-# 
-# # trueValues[1:5] = c(-3,-6,-3,-6,-5)
-# # trueValues[6:10] = rnorm(5)
-# # trueValues[11:15] = rnorm(5, mean = 0, sd = 0.5)
-# trueValues[par_index$pi_logit] = c(-0.5,-0.5)
-# save(trueValues, file = paste0("DataOut/trueValues_", 4, ".rda"))
+# save(trueValues, file = 'DataOut/trueValues.rda')
 load('DataOut/trueValues.rda')
+
 
 betaMat <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 
