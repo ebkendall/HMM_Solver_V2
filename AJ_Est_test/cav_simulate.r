@@ -1,52 +1,4 @@
-
-# ******************************************************************************
-# Remove sex as a covariate for now just to see if we can estimate *************
-# the correct coefficients.                                        *************
-# Remove any misclassification for now as well.                    *************
-# ******************************************************************************
-
-floor_new <- function(t,p) {
-    new_time = NULL
-    if(p == 1) {
-      new_time = t
-    } else if (p==2) {
-      monthSeq = seq(0,1,1/6)
-      yearNum = floor(t)
-      timeInd = max(which(monthSeq <= (t - yearNum))) # selects which month to go to
-      new_time = yearNum + monthSeq[timeInd]
-    } else if (p==3) {
-      new_time = floor(t)
-    } else if (p==4) {
-      if(floor(t) %% 2 == 0) { # divisible by 2
-        new_time = floor(t)
-      } else {
-        temp = t - 1
-        new_time = floor(temp)
-      }
-    } else {
-      print("Invalid input for p")
-    }
-    return(new_time)
-}
-
-censor_times <- function(t, p) {
-  min_t = 0
-  max_t = floor_new(max(t), p)
-  new_time = c()
-  if(p == 1) {
-    new_time = t
-  } else if (p==2) {
-    new_time = seq(min_t, max_t, by = 1/6)
-  } else if (p==3) {
-    new_time = seq(min_t, max_t, by = 1)
-  } else {
-    new_time = seq(min_t, max_t, by = 2)
-  }
-  return(new_time)
-}
-
 library(msm)
-
 # args = commandArgs(TRUE)
 # num_iter = as.numeric(args[1])
 num_iter = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
@@ -62,7 +14,7 @@ print(num_iter)
 # p = 4 --> update every other year
 
 # Set the sample size.  Note that the true cav data set has 622 subjects.
-N <- 4000
+N <- 6000
 # Choose the discretization of time.
 dt <- 1/365
 
@@ -142,25 +94,6 @@ propDeaths <- propDeaths / N_cav
 #----------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------------------------------------------------------------------
 
-# betaMat = betaMat[,-3]
-# 
-# Q <- function(time,betaMat){
-#     
-#     q1  = exp( c(1,time) %*% betaMat[1,] )  # Transition from state 1 to state 2.
-#     q2  = exp( c(1,time) %*% betaMat[2,] )  # Transition from state 1 to death.
-#     q3  = exp( c(1,time) %*% betaMat[3,] )  # Transition from state 2 to state 3.
-#     q4  = exp( c(1,time) %*% betaMat[4,] )  # Transition from state 2 to death.
-#     q5  = exp( c(1,time) %*% betaMat[5,] )  # Transition from state 3 to death.
-#     
-#     qmat = matrix(c( 0,q1, 0,q2,
-#                      0, 0,q3,q4,
-#                      0, 0, 0,q5,
-#                      0, 0, 0, 0),nrow=4,byrow=TRUE)
-#     diag(qmat) = -rowSums(qmat)
-#     
-#     return(qmat)
-# }
-
 Q <- function(time,sex,betaMat){
     
     q1  = exp( c(1,time,sex) %*% betaMat[1,] )  # Transition from state 1 to state 2.
@@ -219,14 +152,14 @@ for(i in 1:N){
     }
     timeOfDeath <- tail(years,1)
     
-    # # Sample inter-observation times from the cav data set.  Maximum of 20 years in study.
-    # visitTimes <- NULL
-    # time2 <- 0
-    # 
-    # while(time2 < min( 20, timeOfDeath)){
-    #     visitTimes <- c( visitTimes, time2)
-    #     time2 <- time2 + sample( interObsTime, size=1) + runif(1, min = 0, max = 0.1)
-    # }
+    # Sample inter-observation times from the cav data set.  Maximum of 20 years in study.
+    visitTimes <- NULL
+    time2 <- 0
+    
+    while(time2 < min( 20, timeOfDeath)){
+        visitTimes <- c( visitTimes, time2)
+        time2 <- time2 + sample( interObsTime, size=1) + runif(1, min = 0, max = 0.1)
+    }
     
     # Get the exact observation times
     transition_times_pos = which(diff(trueState) != 0) + 1
@@ -241,14 +174,11 @@ for(i in 1:N){
     # }
     
     # If first visit time occurs after death, then subject is NOT entered into the study.
-    # if( !is.null(visitTimes) ){
+    if( !is.null(visitTimes) ){
     
-        visitTimes = c(0, transition_times)
-        state = c(trueState[1], transition_times_state)
-        n_i = length(visitTimes)
-        
-        # # If death occured before the study ended, then record the time of death.
-        # if( timeOfDeath < 20 ){  visitTimes <- c( visitTimes, timeOfDeath) }
+        # visitTimes = c(0, transition_times)
+        # state = c(trueState[1], transition_times_state)
+        # n_i = length(visitTimes)
         # 
         # # Adding to get exact transition times ------------------------------------
         # if(length(transition_times_pos) > 0) {
@@ -258,13 +188,15 @@ for(i in 1:N){
         #         }
         #     }
         # }
-        # # -------------------------------------------------------------------------
-        # 
         # visitTimes = sort(visitTimes)
-        # 
-        # n_i <- length(visitTimes)
-        # state <- NULL
-        # for(k in 1:n_i){  state <- c( state, tail( trueState[ years <= visitTimes[k] ], 1))  }
+        # # -------------------------------------------------------------------------
+        
+        # If death occured before the study ended, then record the time of death.
+        if( timeOfDeath < 20 ){  visitTimes <- c( visitTimes, timeOfDeath) }
+        
+        n_i <- length(visitTimes)
+        state <- NULL
+        for(k in 1:n_i){  state <- c( state, tail( trueState[ years <= visitTimes[k] ], 1))  }
         
         ptnum <- rep(i,n_i)
         years <- visitTimes
@@ -273,7 +205,7 @@ for(i in 1:N){
         # rawData <- rbind( rawData, data.frame(ptnum,years,state) )
         if(4 %in% state){  propDeaths_sim <- propDeaths_sim + 1  }
         NumObs_sim <- c( NumObs_sim, n_i)
-    # }
+    }
     
 }
 

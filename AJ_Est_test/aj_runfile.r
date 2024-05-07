@@ -115,11 +115,15 @@ for(it in 1:100) {
         
         init_par = beta[i,]
         
-        op = optim(par=init_par, fn=min_residuals, data=df_tot)
+        op = optim(par=init_par, fn=min_residuals, data=df_tot, hessian = T)
         
         if(op$convergence != 0) {print("no convergence")}
         
         optim_coeff_split[i, ] = op$par
+        
+        # fish_info = solve(op$hessian)
+        # prop_sigma<-sqrt(diag(fish_info))
+        # conf_int[i,]
     }
     
     
