@@ -1,5 +1,8 @@
 library(AalenJohansen)
 
+args = commandArgs(TRUE)
+exact_time = as.logical(as.numeric(args[1]))
+
 load(paste0('DataOut/trueValues.rda'))
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 beta <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
@@ -9,7 +12,11 @@ par_est = vector(mode = 'list', length = 100)
 par_est_split = vector(mode = 'list', length = 100)
 for(it in 1:100) {
     print(it)
-    load(paste0('DataOut/cavData', it, '.rda'))
+    if(exact_time) {
+        load(paste0('DataOut/exactTime/cavData', it, '.rda'))
+    } else {
+        load(paste0('DataOut/interTime/cavData', it, '.rda'))
+    }
     eid = unique(cavData$ptnum)
     cavData_aj = vector(mode = 'list', length = length(eid))
     for(i in 1:length(cavData_aj)) {
@@ -96,7 +103,7 @@ for(it in 1:100) {
         
         init_par = beta[i,]
         
-        op = optim(par=init_par, fn=min_residuals, data=df_tot)
+        op = optim(par=init_par, fn=min_residuals, data=df_tot, hessian = T)
         
         if(op$convergence != 0) {print("no convergence")}
         
@@ -162,8 +169,14 @@ library(tidyverse)
 library(gridExtra)
 library(latex2exp)
 
-pdf(paste0('Plots/par_est_optim.pdf'))
+pdf_title = NULL
+if(exact_time) {
+    pdf_title = 'Plots/par_est_optim_exact.pdf'
+} else {
+    pdf_title = 'Plots/par_est_optim_inter.pdf'
+}
 
+pdf(pdf_title)
 VP <- vector(mode="list", length = length(labels))
 for(r in 1:length(labels)) {
     # Boxplots for par_est_mat

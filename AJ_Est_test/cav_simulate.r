@@ -1,67 +1,37 @@
 library(msm)
-# args = commandArgs(TRUE)
-# num_iter = as.numeric(args[1])
-num_iter = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+
+args = commandArgs(TRUE)
+num_iter = as.numeric(args[1])
+exact_time = as.logical(as.numeric(args[2]))
 
 print(paste0("iteration ", num_iter))
 
 set.seed(num_iter)
 print(num_iter)
 
-# p = 1 --> update continuous
-# p = 2 --> update every other month
-# p = 3 --> update every year
-# p = 4 --> update every other year
-
 # Set the sample size.  Note that the true cav data set has 622 subjects.
-N <- 6000
+N <- 4000
 # Choose the discretization of time.
 dt <- 1/365
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
-# The true values are set as the posterior means of the thinned last 15,000 steps
-# from running the MCMC routine using the numerical ODE solution (seed 10).
-# load('../Time_Capsuled_Code_JCGS/real_cav_analysis/Model_out/deSolve/mcmc_out_10.rda')
-# chain = mcmc_out$chain[10000:25001, ]
-# ind_keep = seq(1, nrow(chain), by=10)
-# chain = chain[ind_keep, ]
-# 
-# trueValues = colMeans(chain)
-# # The true values corresponding to the slope coefficient on time are scaled by
-# # 3 in order to magnify the effect of the different approaches to modelling
-# # continuous time HMMs.
-# 
-# # trueValues[6:10] = 3 * trueValues[6:10]
-# trueValues[7] = -0.5
-# trueValues[par_index$pi_logit] = c(0, 0)
-# 
-# save(trueValues, file = 'DataOut/trueValues.rda')
 load('DataOut/trueValues.rda')
 
 
 betaMat <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 
-# Misclassification error matrix
-# errorMat_temp = matrix(c(1, exp(trueValues[par_index$misclass][1]), 0, 0,
-#                          exp(trueValues[par_index$misclass][2]), 1, exp(trueValues[par_index$misclass][3]), 0,
-#                          0, exp(trueValues[par_index$misclass][4]), 1, 0,
-#                          0,   0,   0, 1), ncol=4, byrow=TRUE)
-# 
-# errorMat = errorMat_temp / rowSums(errorMat_temp)
 errorMat = diag(4)
 
 # Initial state probabilities
-initProbs_temp = c( 1, exp(trueValues[par_index$pi_logit][1]), exp(trueValues[par_index$pi_logit][2]), 0)
+initProbs_temp = c( 1, exp(trueValues[par_index$pi_logit][1]), 
+                    exp(trueValues[par_index$pi_logit][2]), 0)
 initProbs = initProbs_temp / sum(initProbs_temp)
 
 
-#----------------------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Collect information about the real data set.
-#----------------------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------------------
-
+#-------------------------------------------------------------------------------
 ptnum <- unique(cav$PTNUM)
 N_cav <- length(ptnum)
 interObsTime <- NULL
@@ -75,7 +45,9 @@ for(i in 1:N_cav){
     NumObs[i] <- nrow(subject)
     
     # The times between observations.
-    if(!(4 %in% subject$state)){  interObsTime <- c( interObsTime, round( diff(subject$years), 3))  }
+    if(!(4 %in% subject$state)){
+        interObsTime <- c( interObsTime, round( diff(subject$years), 3))  
+    }
     
     # Determine whether the subject is male.
     propMale <- propMale + as.integer(subject$sex[1]==1)
@@ -85,14 +57,7 @@ for(i in 1:N_cav){
 }
 propMale <- propMale / N_cav
 propDeaths <- propDeaths / N_cav
-
-
-
-#----------------------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------------------
-# Fill in the states using the transition rate matrix and error matrix estimated on the real data set.
-#----------------------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 Q <- function(time,sex,betaMat){
     
@@ -111,7 +76,9 @@ Q <- function(time,sex,betaMat){
     return(qmat)
 }
 
-
+#-------------------------------------------------------------------------------
+# Simulate the new data
+#-------------------------------------------------------------------------------
 rawData <- NULL
 propDeaths_sim <- 0
 NumObs_sim <- NULL
@@ -119,8 +86,6 @@ for(i in 1:N){
     
     print(i)
     
-    # Sample the gender, as proportional to the cav data set.
-    # sex <- as.integer(runif(1,0,1) < propMale)
     sex <- sample(c(0,1), size = 1)
     
     # Sample for an initial state.
@@ -131,7 +96,6 @@ for(i in 1:N){
     time1 <- 0
     s <- trueState
     while(s < 4){
-        
         # Infinitesimal transition rates.
         qmat <- Q(time1,sex,betaMat)
         
@@ -151,84 +115,85 @@ for(i in 1:N){
         trueState <- c( trueState, s)
     }
     timeOfDeath <- tail(years,1)
-    
-    # Sample inter-observation times from the cav data set.  Maximum of 20 years in study.
-    visitTimes <- NULL
-    time2 <- 0
-    
-    while(time2 < min( 20, timeOfDeath)){
-        visitTimes <- c( visitTimes, time2)
-        time2 <- time2 + sample( interObsTime, size=1) + runif(1, min = 0, max = 0.1)
+
+    if(exact_time) {
+        # We observe the exact transition time ---------------------------------
+
+        # Get the exact observation times
+        transition_times_pos = which(diff(trueState) != 0) + 1
+        transition_times = years[transition_times_pos]
+        transition_times_state = trueState[transition_times_pos]
+
+        visitTimes = c(0, transition_times)
+        n_i = length(visitTimes)
+
+        state = c(trueState[1], transition_times_state)
+
+    } else {
+        # We do NOT observe the exact transition time --------------------------
+
+        # Sample inter-observation times from the cav data set. Max of 20 years.
+        visitTimes <- NULL
+        time2 <- 0
+        
+        while(time2 < min( 20, timeOfDeath)){
+            visitTimes <- c( visitTimes, time2)
+            time2 <- time2 + sample( interObsTime, size=1) + runif(1, min = 0, max = 0.1)
+        }
+
+        # If first visit time occurs after death, then subject is NOT entered into the study.
+        if( !is.null(visitTimes) ){
+            # If death occured before the study ended, then record the time of death.
+            if( timeOfDeath < 20 ){  visitTimes <- c( visitTimes, timeOfDeath) }
+            
+            n_i <- length(visitTimes)
+
+            state <- NULL
+            for(k in 1:n_i){  
+                state <- c( state, tail( trueState[ years <= visitTimes[k] ], 1))  
+            }
+        }
     }
-    
-    # Get the exact observation times
-    transition_times_pos = which(diff(trueState) != 0) + 1
-    transition_times = years[transition_times_pos]
-    transition_times_state = trueState[transition_times_pos]
-    
-    # # If the only transition is to death, then we don't need to do anything extra
-    # if(length(transition_times_pos) == 1) {
-    #     if(transition_times_state == 4) {
-    #         transition_times_pos = NULL   
-    #     }
-    # }
-    
-    # If first visit time occurs after death, then subject is NOT entered into the study.
-    if( !is.null(visitTimes) ){
-    
-        # visitTimes = c(0, transition_times)
-        # state = c(trueState[1], transition_times_state)
-        # n_i = length(visitTimes)
-        # 
-        # # Adding to get exact transition times ------------------------------------
-        # if(length(transition_times_pos) > 0) {
-        #     for(ttt in 1:length(transition_times_pos)) {
-        #         if(transition_times_state[ttt] != 4) {
-        #             visitTimes = c(visitTimes, transition_times[ttt])
-        #         }
-        #     }
-        # }
-        # visitTimes = sort(visitTimes)
-        # # -------------------------------------------------------------------------
-        
-        # If death occured before the study ended, then record the time of death.
-        if( timeOfDeath < 20 ){  visitTimes <- c( visitTimes, timeOfDeath) }
-        
-        n_i <- length(visitTimes)
-        state <- NULL
-        for(k in 1:n_i){  state <- c( state, tail( trueState[ years <= visitTimes[k] ], 1))  }
-        
-        ptnum <- rep(i,n_i)
-        years <- visitTimes
-        
-        rawData <- rbind( rawData, data.frame(ptnum,years,sex,state) )
-        # rawData <- rbind( rawData, data.frame(ptnum,years,state) )
-        if(4 %in% state){  propDeaths_sim <- propDeaths_sim + 1  }
-        NumObs_sim <- c( NumObs_sim, n_i)
-    }
-    
+
+    ptnum <- rep(i,n_i)
+    years <- visitTimes
+
+    rawData <- rbind( rawData, data.frame(ptnum,years,sex,state) )
+    if(4 %in% state){  propDeaths_sim <- propDeaths_sim + 1  }
+    NumObs_sim <- c( NumObs_sim, n_i)
 }
+#-------------------------------------------------------------------------------
 
 colnames(rawData) <- c('ptnum','years','sex','state')
-# colnames(rawData) <- c('ptnum','years','state')
 N <- length(unique(rawData$ptnum))
 propDeaths_sim <- propDeaths_sim / N
 
 
-# Add noise to the states.
-# for(i in 1:nrow(rawData)){	rawData$state[i] <- sample(1:4, size=1, prob=errorMat[rawData$state[i],])  }
-
-#----------------------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------------------
-# Add censored rows.
-#----------------------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------------------
-# Key
-# p = 1: continuous (no censor)
-# p = 2: once every two months censor
-# p = 3: year censor
-# p = 4: once every two years censor
 p = 1
+
+floor_new <- function(t,p) {
+    new_time = NULL
+    if(p == 1) {
+      new_time = t
+    } else if (p==2) {
+      monthSeq = seq(0,1,1/6)
+      yearNum = floor(t)
+      timeInd = max(which(monthSeq <= (t - yearNum))) # selects which month to go to
+      new_time = yearNum + monthSeq[timeInd]
+    } else if (p==3) {
+      new_time = floor(t)
+    } else if (p==4) {
+      if(floor(t) %% 2 == 0) { # divisible by 2
+        new_time = floor(t)
+      } else {
+        temp = t - 1
+        new_time = floor(temp)
+      }
+    } else {
+      print("Invalid input for p")
+    }
+    return(new_time)
+}
 
 disc_time <- sapply(rawData$years, floor_new, p = p)
 
@@ -246,7 +211,11 @@ cavData = hold
 colnames(cavData) <- c('ptnum','years','disc_time','sex','state','obstrue')
 rownames(cavData) <- NULL
 
-save(cavData, file=paste("DataOut/cavData", num_iter, ".rda", sep=''))
+if(exact_time) {
+    save(cavData, file=paste("DataOut/exactTime/cavData", num_iter, ".rda", sep=''))
+} else {
+    save(cavData, file=paste("DataOut/interTime/cavData", num_iter, ".rda", sep=''))
+}
 
 obs_trans <- function(df) {
     count_transitions = matrix(0, nrow=4, ncol=4)
