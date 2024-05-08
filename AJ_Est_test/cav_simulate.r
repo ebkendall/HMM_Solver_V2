@@ -1,23 +1,30 @@
 library(msm)
 
-args = commandArgs(TRUE)
-num_iter = as.numeric(args[1])
-exact_time = as.logical(as.numeric(args[2]))
+# args = commandArgs(TRUE)
+# num_iter = as.numeric(args[1])
+num_iter = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+# exact_time = as.logical(as.numeric(args[2]))
+exact_time = T
 
 print(paste0("iteration ", num_iter))
 
 set.seed(num_iter)
-print(num_iter)
 
 # Set the sample size.  Note that the true cav data set has 622 subjects.
-N <- 4000
+N <- 2000
 # Choose the discretization of time.
-dt <- 1/365
+dt <- 1/5000
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
 load('DataOut/trueValues.rda')
-
+# trueValues[10] = trueValues[10] * 2
+# trueValues[par_index$pi_logit] = c(-2,-2)
+trueValues= c(-2.31617310,  -1.28756312,  -1.10116400,  -2.52367543,  -2.10384797,
+              0.27050001, -11.65470594,  -0.49306415,   0.28862090,   0.22731278,
+              -0.39079609,  -0.05894252,  -0.32509646,   0.48631653,   0.99565810,
+              -5.28923943,  -0.90870027,  -2.40751854,  -2.44696544,  -6.52252202,
+              -6.24090500)
 
 betaMat <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 
@@ -82,7 +89,8 @@ Q <- function(time,sex,betaMat){
 rawData <- NULL
 propDeaths_sim <- 0
 NumObs_sim <- NULL
-for(i in 1:N){
+i=1
+while(i <= N){
     
     print(i)
     
@@ -125,9 +133,38 @@ for(i in 1:N){
         transition_times_state = trueState[transition_times_pos]
 
         visitTimes = c(0, transition_times)
-        n_i = length(visitTimes)
-
         state = c(trueState[1], transition_times_state)
+        
+        # Add more observations per subject
+        visitTimes2 <- NULL
+        time2 <- 0
+        state2 <- NULL
+        
+        while(time2 < timeOfDeath){
+            visitTimes2 <- c( visitTimes2, time2)
+            time2 <- time2 + sample( interObsTime, size=1) + runif(1, min = 0, max = 0.1)
+        }
+        
+        if(length(visitTimes2) > 1) {
+            visitTimes2 = visitTimes2[-1]
+            for(k in 1:length(visitTimes2)){  
+                state2 <- c( state2, tail( trueState[ years <= visitTimes2[k] ], 1))  
+            }   
+            
+            combo_visits = rbind(cbind(visitTimes, state), cbind(visitTimes2, state2))
+            combo_visits = combo_visits[order(combo_visits[,1]),]
+            
+            visitTimes = combo_visits[,1]
+            state = combo_visits[,2]
+        }
+        
+        # # Remove time instances > 15
+        # keep_ind = which(visitTimes < 15)
+        # 
+        # visitTimes = visitTimes[keep_ind]
+        # state = state[keep_ind]
+        
+        n_i = length(visitTimes)
 
     } else {
         # We do NOT observe the exact transition time --------------------------
@@ -155,12 +192,17 @@ for(i in 1:N){
         }
     }
 
-    ptnum <- rep(i,n_i)
-    years <- visitTimes
-
-    rawData <- rbind( rawData, data.frame(ptnum,years,sex,state) )
-    if(4 %in% state){  propDeaths_sim <- propDeaths_sim + 1  }
-    NumObs_sim <- c( NumObs_sim, n_i)
+    if(n_i > 1) {
+        ptnum <- rep(i,n_i)
+        years <- visitTimes
+        
+        rawData <- rbind( rawData, data.frame(ptnum,years,sex,state) )
+        if(4 %in% state){  propDeaths_sim <- propDeaths_sim + 1  }
+        NumObs_sim <- c( NumObs_sim, n_i)  
+        i = i + 1
+    } else {
+        print(paste0(i, " not enough info"))
+    }
 }
 #-------------------------------------------------------------------------------
 
@@ -237,3 +279,6 @@ print("sex = 0")
 obs_trans(cavData[cavData$sex == 0, ])
 print("sex = 1")
 obs_trans(cavData[cavData$sex == 1, ])
+
+print("proportion of state 4")
+print(sum(cavData$state == 4) / length(unique(cavData$ptnum)))
