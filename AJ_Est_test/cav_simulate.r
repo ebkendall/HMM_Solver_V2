@@ -1,10 +1,8 @@
 library(msm)
 
-# args = commandArgs(TRUE)
-# num_iter = as.numeric(args[1])
-num_iter = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
-# exact_time = as.logical(as.numeric(args[2]))
-exact_time = T
+args = commandArgs(TRUE)
+num_iter = as.numeric(args[1])
+exact_time = as.logical(as.numeric(args[2]))
 
 print(paste0("iteration ", num_iter))
 
@@ -13,27 +11,21 @@ set.seed(num_iter)
 # Set the sample size.  Note that the true cav data set has 622 subjects.
 N <- 2000
 # Choose the discretization for "instantaneous" time.
-dt <- 1/5000
+dt <- 1/1000
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
-load('DataOut/trueValues.rda')
-trueValues[10] = trueValues[10] * 2
-trueValues[par_index$pi_logit] = c(-2,-2)
-# trueValues= c(-2.31617310,  -1.28756312,  -1.10116400,  -2.52367543,  -2.10384797,
-#               0.27050001, -11.65470594,  -0.49306415,   0.28862090,   0.22731278,
-#               -0.39079609,  -0.05894252,  -0.32509646,   0.48631653,   0.99565810,
-#               -5.28923943,  -0.90870027,  -2.40751854,  -2.44696544,  -6.52252202,
-#               -6.24090500)
+trueValues= c(-2.31617310,  -1.28756312,  -1.10116400,  -2.52367543,  -2.10384797,
+              0.27050001, -11.65470594,  -0.49306415,   0.28862090,   0.22731278,
+              -0.39079609,  -0.05894252,  -0.32509646,   0.48631653,   0.99565810,
+              -5.28923943,  -0.90870027,  -2.40751854,  -2.44696544,  -6.52252202,
+              -6.24090500)
 
 betaMat <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 
 errorMat = diag(4)
 
-# Initial state probabilities
-initProbs_temp = c( 1, exp(trueValues[par_index$pi_logit][1]), 
-                    exp(trueValues[par_index$pi_logit][2]), 0)
-initProbs = initProbs_temp / sum(initProbs_temp)
+initProbs = c(1,0,0,0)
 
 
 #-------------------------------------------------------------------------------
@@ -97,7 +89,8 @@ while(i <= N){
     sex <- sample(c(0,1), size = 1)
     
     # Sample for an initial state.
-    trueState <- sample(1:4, size=1, prob=initProbs)
+    # trueState <- sample(1:4, size=1, prob=initProbs)
+    trueState <- 1 # everyone starts in state 1
     
     # Sample the remaining states until death.
     years <- 0
