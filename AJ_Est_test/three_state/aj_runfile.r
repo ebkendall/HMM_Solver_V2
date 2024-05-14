@@ -2,7 +2,6 @@ library(AalenJohansen)
 
 args = commandArgs(TRUE)
 exact_time = as.logical(as.numeric(args[1]))
-# exact_time = T
 
 for(it in 1:100) {
     print(it)
