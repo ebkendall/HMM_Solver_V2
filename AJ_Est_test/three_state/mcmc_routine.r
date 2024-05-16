@@ -38,7 +38,7 @@ model_t <- function(t,p,parms) {
 fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, exact_time) {
 
     # Initial state probabilities
-    init = c(1,0,0)
+    init = c(1/3,1/3,1/3)
 
     resp_fnc = diag(3)
 
@@ -77,7 +77,7 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, exact_time) {
                 } else {
                     val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
                 }
-            } else { # death is observed
+            } else { 
                 val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
             }
 

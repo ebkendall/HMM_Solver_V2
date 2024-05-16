@@ -34,7 +34,7 @@ for(i in 1:100) {
     }
     
     par_est_mat_split[i,] = c(par_est_list[[1]])
-    par_est_mat[i,] = c(par_est_list[[2]])
+    # par_est_mat[i,] = c(par_est_list[[2]])
 }
 
 labels <- c('baseline S1 (well)   --->   S2 (mild)',
@@ -58,6 +58,9 @@ trueValues= c(-2.31617310,  -1.28756312,  -1.10116400,  -2.52367543,  -2.1038479
               -0.39079609,  -0.05894252,  -0.32509646,   0.48631653,   0.99565810,
               -5.28923943,  -0.90870027,  -2.40751854,  -2.44696544,  -6.52252202,
               -6.24090500)
+trueValues[10] = 1
+trueValues[8] = trueValues[8] * -1
+trueValues[15] = 0.4
 
 # Plot and save the mcmc trace plots and histograms.
 library(tidyverse)
@@ -75,8 +78,8 @@ pdf(pdf_title)
 VP <- vector(mode="list", length = length(labels))
 for(r in 1:length(labels)) {
     # Boxplots for par_est_mat
-    yVar = c(par_est_mat_split[,r], par_est_mat[,r])
-    disc_type = c(rep('AJ', nrow(par_est_mat_split)), rep('nhm', nrow(par_est_mat)))
+    yVar = c(par_est_mat_split[,r])#, par_est_mat[,r])
+    disc_type = c(rep('AJ', nrow(par_est_mat_split)))#, rep('nhm', nrow(par_est_mat)))
     x_label = paste0("Parameter Value: ", round(trueValues[r], 3))
     truth_par = trueValues[r]
     

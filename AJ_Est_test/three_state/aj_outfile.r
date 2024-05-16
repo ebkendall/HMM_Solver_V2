@@ -4,31 +4,31 @@ exact_time = as.logical(as.numeric(args[1]))
 par_index = list( beta=1:18)
 
 par_est_mat_split = matrix(nrow = 100, ncol = length(par_index$beta))
-par_est_mat       = matrix(nrow = 98, ncol = length(par_index$beta))
+par_est_mat       = matrix(nrow = 100, ncol = length(par_index$beta))
 
-# Load the MCMC results
-chain_list <- NULL
-n_post = 9000; burnin = 1000; steps = 10000
-index_post = (steps - burnin - n_post + 1):(steps - burnin)
-
-ind_i = 1
-for(i in 1:100) {
-    if(!(i %in% c(39, 61))) {
-        if(exact_time) {
-            load(paste0('Model_out/exactTime/mcmc_out_', i, '.rda'))
-        } else {
-            load(paste0('Model_out/interTime/mcmc_out_', i, '.rda'))
-        }
-        
-        chain_list[[ind_i]] = mcmc_out$chain
-        print(mcmc_out$accept)
-        
-        par_est_mat[ind_i,] = colMeans(mcmc_out$chain[,par_index$beta])   
-        ind_i = ind_i + 1
-    }
-}
-
-stacked_chains = do.call( rbind, chain_list)
+# # Load the MCMC results
+# chain_list <- NULL
+# n_post = 9000; burnin = 1000; steps = 10000
+# index_post = (steps - burnin - n_post + 1):(steps - burnin)
+# 
+# ind_i = 1
+# for(i in 1:100) {
+#     if(!(i %in% c(39, 61))) {
+#         if(exact_time) {
+#             load(paste0('Model_out/exactTime/mcmc_out_', i, '.rda'))
+#         } else {
+#             load(paste0('Model_out/interTime/mcmc_out_', i, '.rda'))
+#         }
+#         
+#         chain_list[[ind_i]] = mcmc_out$chain
+#         print(mcmc_out$accept)
+#         
+#         par_est_mat[ind_i,] = colMeans(mcmc_out$chain[,par_index$beta])   
+#         ind_i = ind_i + 1
+#     }
+# }
+# 
+# stacked_chains = do.call( rbind, chain_list)
 
 # Load the AJ results
 for(i in 1:100) {
@@ -60,12 +60,6 @@ labels <- c('baseline S1 ---> S2',
             'sex S3 ---> S1',
             'sex S3 ---> S2')
 
-# trueValues= c(matrix(c(-2, 0.5,  0.4689827,
-#                        -2, 0.5,  0.2557522,
-#                        -3, 0.5, -0.1457067,
-#                        -3, 0.5,  0.8164156,
-#                        -3, 0.5, -0.5966361,
-#                        -3, 0.5, -0.7967794), ncol = 3, byrow = T))
 trueValues=c(matrix(c(-3,  0.50, -0.4689827,
                       -3,  0.50,  0.2557522,
                       -3,  0.50, -0.1457067,
@@ -109,32 +103,32 @@ grid.arrange(VP[[1]], VP[[2]], VP[[3]], VP[[4]], VP[[5]], VP[[6]], ncol=2, nrow 
 grid.arrange(VP[[7]], VP[[8]], VP[[9]], VP[[10]], VP[[11]], VP[[12]], ncol=2, nrow =3)
 grid.arrange(VP[[13]], VP[[14]], VP[[15]], VP[[16]], VP[[17]], VP[[18]], ncol=2, nrow =3)
 
-# Only thinning down the visualization. All means and medians are calculated
-# using the entire stacked_chains matrix.
-thin_ind = seq(1, length(index_post), by=10)
-thin_ind_big = seq(1, nrow(stacked_chains), by=10)
-par_mean = par_median = upper = lower = rep( NA, ncol(stacked_chains))
-par(mfrow=c(4, 2))
-for(r in 1:length(labels)){
-
-    plot( NULL, xlab=NA, ylab=NA, main=labels[r], xlim=c(1,length(thin_ind)),
-          ylim=range(stacked_chains[,r]) )
-
-    for(seed in 1:length(chain_list)) lines( chain_list[[seed]][thin_ind,r], type='l', col=seed)
-
-    par_mean[r] = round( mean(stacked_chains[,r]), 4)
-    par_median[r] = round( median(stacked_chains[,r]), 4)
-    upper[r] = round( quantile( stacked_chains[,r], prob=.975), 4)
-    lower[r] = round( quantile( stacked_chains[,r], prob=.025), 4)
-
-    print(paste(labels[r], ": [", lower[r], ", ", upper[r], "]"))
-
-    hist( stacked_chains[thin_ind_big,r], breaks=sqrt(nrow(stacked_chains[thin_ind_big,])), ylab=NA, main=NA,
-          freq=F, xlab=paste0('Mean = ',toString(par_mean[r]),
-                              ' Median = ',toString(par_median[r])))
-    abline( v=upper[r], col='red', lwd=2, lty=2)
-    abline( v=trueValues[r], col='green', lwd=2, lty=2)
-    abline( v=lower[r], col='purple', lwd=2, lty=2)
-}
+# # Only thinning down the visualization. All means and medians are calculated
+# # using the entire stacked_chains matrix.
+# thin_ind = seq(1, length(index_post), by=10)
+# thin_ind_big = seq(1, nrow(stacked_chains), by=10)
+# par_mean = par_median = upper = lower = rep( NA, ncol(stacked_chains))
+# par(mfrow=c(4, 2))
+# for(r in 1:length(labels)){
+# 
+#     plot( NULL, xlab=NA, ylab=NA, main=labels[r], xlim=c(1,length(thin_ind)),
+#           ylim=range(stacked_chains[,r]) )
+# 
+#     for(seed in 1:length(chain_list)) lines( chain_list[[seed]][thin_ind,r], type='l', col=seed)
+# 
+#     par_mean[r] = round( mean(stacked_chains[,r]), 4)
+#     par_median[r] = round( median(stacked_chains[,r]), 4)
+#     upper[r] = round( quantile( stacked_chains[,r], prob=.975), 4)
+#     lower[r] = round( quantile( stacked_chains[,r], prob=.025), 4)
+# 
+#     print(paste(labels[r], ": [", lower[r], ", ", upper[r], "]"))
+# 
+#     hist( stacked_chains[thin_ind_big,r], breaks=sqrt(nrow(stacked_chains[thin_ind_big,])), ylab=NA, main=NA,
+#           freq=F, xlab=paste0('Mean = ',toString(par_mean[r]),
+#                               ' Median = ',toString(par_median[r])))
+#     abline( v=upper[r], col='red', lwd=2, lty=2)
+#     abline( v=trueValues[r], col='green', lwd=2, lty=2)
+#     abline( v=lower[r], col='purple', lwd=2, lty=2)
+# }
 
 dev.off()

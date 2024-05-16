@@ -81,12 +81,24 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id) {
                             0,  0, out[2,"p8"], out[2,"p9"],
                             0,  0,  0,  1), nrow = 4, byrow = T)
 
-            # Checking if death (state = 4) has occurred
-            if(y_i[k] != 4) {
-                val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
-            } else { # death is observed
-                val = f_i %*% P %*% Q(t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
+            # exact_time = T -> we need to account for exact transition time
+            if(exact_time) {
+                if(y_i[k] != y_i[k-1]) {
+                    # Transition occurred and we have the exact transition time
+                    val = f_i %*% P %*% Q(t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
+                } else {
+                    val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
+                }
+            } else { 
+                # Checking if death (state = 4) has occurred
+                if(y_i[k] != 4) {
+                    val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
+                } else { # death is observed
+                    val = f_i %*% P %*% Q(t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
+                }
             }
+            
+
 
             norm_val = sqrt(sum(val^2))
             f_i = val / norm_val
@@ -118,7 +130,9 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
   n_par = length(pars)
   chain = matrix( 0, steps, n_par)
 
-  group = list(c(par_index$beta))
+  group = list(c(par_index$beta[1:5]), 
+               c(par_index$beta[6:10]),
+               c(par_index$beta[11:15]))
   n_group = length(group)
 
   pcov = list();	for(j in 1:n_group)  pcov[[j]] = diag(length(group[[j]]))
