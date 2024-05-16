@@ -1,11 +1,11 @@
 library(AalenJohansen)
 library(nhm)
 
-args = commandArgs(TRUE)
-it = as.numeric(args[1])
-exact_time = as.logical(as.numeric(args[2]))
-# it = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
-# exact_time = T
+# args = commandArgs(TRUE)
+# it = as.numeric(args[1])
+# exact_time = as.logical(as.numeric(args[2]))
+it = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+exact_time = T
 
 print(it)
 
@@ -78,7 +78,7 @@ v0_t_split <- fit0_split$t
 # Using optim to get parameter estimates -----------------------------------
 #  -------------------------------------------------------------------------
 min_residuals <- function(data, par) {
-    with(data, sum(abs( (1/par[2]) * (exp(par[1] + par[2]*t + par[3]*x) - exp(par[1] + par[3]*x)) - y)))
+    with(data, sum(( (1/par[2]) * (exp(par[1] + par[2]*t + par[3]*x) - exp(par[1] + par[3]*x)) - y)^2))
 }
 
 optim_coeff_split = matrix(0, nrow = 5, ncol = 3)
@@ -148,74 +148,3 @@ if(exact_time) {
 } else {
     save(par_est_list, file = paste0('Model_out/interTime/par_est_list_', it, '.rda'))
 }
-
-# # Create a coarsened version of the dataset for numerical stability --------
-# nhm_data2 <- nhm_data
-# nhm_data2$time <- floor(nhm_data2$time*1000)/1000 #Coarsen time
-# timegap<-c(0,diff(nhm_data2$time))
-# nhm_data2$time[timegap < 1e-10 & nhm_data2$time!=0] <- nhm_data2$time[timegap<1e-10 & nhm_data2$time!=0]+0.001
-# nhm_data2$time <- floor(nhm_data2$time*1000)/1000 
-# gomp_model_bespoke <- model.nhm(state~time, data=nhm_data2, subject = id, 
-#                                 trans=trans, covariates="cov1",
-#                                 type="bespoke", intens=fourstate_illness_death,
-#                                 death = T, death.states = 4)
-# init_par3 <- trueValues[par_index$beta]
-# init_par3[1:5] <- init_par3[1:5] + 5*init_par3[6:10]
-# 
-# ll<-rep(-Inf,21) 
-# ul<-rep(5,21)
-# 
-# gomp_fit  <- nhm(gomp_model_bespoke, initial=init_par3, 
-#                  control=nhm.control(obsinfo=FALSE,splits=c(seq(0.5,12,by=0.5)),
-#                                      constrained=TRUE,lower_lim=ll,upper_lim=ul,
-#                                      nlminb_control = list(trace=1)))
-# nhm_par_est = gomp_fit$par
-# nhm_par_est[1:5] = nhm_par_est[1:5] - 5*nhm_par_est[6:10]
-# 
-# # ------------------------------------------------------------------------------
-# # nhm: Bespoke version of gompertz model, centered at 5 years: -----------------
-# fourstate_illness_death<-function(t,z,x) {
-#     tc <- t-5
-#     q12<-exp(x[1])
-#     q14<-exp(x[2])
-#     q23<-exp(x[3])
-#     q24<-exp(x[4])
-#     q34<-exp(x[5])
-#     i12<-q12*exp(x[6]*tc + x[11]*z[1])
-#     i14<-q14*exp(x[7]*tc + x[12]*z[1])
-#     i23<-q23*exp(x[8]*tc + x[13]*z[1])
-#     i24<-q24*exp(x[9]*tc + x[14]*z[1])
-#     i34<-q34*exp(x[10]*tc + x[15]*z[1])
-#     q<-rbind(c(0,i12,0,i14),c(0,0,i23,i24),c(0,0,0,i34),c(0,0,0,0))
-#     diag(q) <- c(-i12-i14,-i23-i24,-i34,0)
-#     der<-array(0,c(4,4,15))
-#     der[1,1,1]<--i12
-#     der[1,2,1]<-i12
-#     der[1,1,2]<--i14
-#     der[1,4,2]<-i14
-#     der[2,2,3]<--i23
-#     der[2,3,3]<-i23
-#     der[2,2,4]<--i24
-#     der[2,4,4]<-i24
-#     der[3,3,5]<--i34
-#     der[3,4,5]<-i34
-#     der[,,6:10]<-tc*der[,,1:5]
-#     der[1,1,11]<--i12*z[1]
-#     der[1,2,11]<-i12*z[1]
-#     der[1,1,12]<--i14*z[1]
-#     der[1,4,12]<-i14*z[1]
-#     der[2,2,13]<--i23*z[1]
-#     der[2,3,13]<-i23*z[1]
-#     der[2,2,14]<--i24*z[1]
-#     der[2,4,14]<-i24*z[1]
-#     der[3,3,15]<--i34*z[1]
-#     der[3,4,15]<-i34*z[1]
-#     Q<-list(q=q,qp=der)
-#     return(Q)
-# }
-# attr(fourstate_illness_death,"npar")<-15
-# attr(fourstate_illness_death,"parnames")<-c("1->2 base:","1->4 base:","2->3 base:","2->4 base:","3->4 base:","1->2 NH","1->4 NH",
-#                                             "2->3 NH:","2->4 NH:","3->4 NH:","1->2 Cov1:","1->4 Cov1:","2->3 Cov1:","2->4 Cov1:","3->4 Cov1:")
-# attr(fourstate_illness_death,"parclass")<-rep(c("Trans","Nonhom","Cov"),c(5,5,5))
-# # ------------------------------------------------------------------------------
-

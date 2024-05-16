@@ -1,8 +1,10 @@
 library(msm)
 
-args = commandArgs(TRUE)
-num_iter = as.numeric(args[1])
-exact_time = as.logical(as.numeric(args[2]))
+# args = commandArgs(TRUE)
+# num_iter = as.numeric(args[1])
+# exact_time = as.logical(as.numeric(args[2]))
+num_iter = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+exact_time = T
 
 print(paste0("iteration ", num_iter))
 
@@ -11,7 +13,7 @@ set.seed(num_iter)
 # Set the sample size.  Note that the true cav data set has 622 subjects.
 N <- 2000
 # Choose the discretization for "instantaneous" time.
-dt <- 1/1000
+dt <- 1/365
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
@@ -89,7 +91,6 @@ while(i <= N){
     sex <- sample(c(0,1), size = 1)
     
     # Sample for an initial state.
-    # trueState <- sample(1:4, size=1, prob=initProbs)
     trueState <- 1 # everyone starts in state 1
     
     # Sample the remaining states until death.
@@ -130,32 +131,45 @@ while(i <= N){
         
         # Add more observations per subject
         visitTimes2 <- NULL
-        time2 <- 0
         state2 <- NULL
+        time2 <- 0
+        # for(k in 1:(length(visitTimes) - 1)) {
+        #     visitTimes2 = c(visitTimes2, visitTimes[k])
+        #     state2 = c(state2, state[k])
+        #     
+        #     l_out = 4
+        #     inter_times = seq(visitTimes[k], visitTimes[k+1], length.out = l_out)
+        #     inter_times = inter_times[c(-1,-l_out)]
+        #     visitTimes2 = c(visitTimes2, inter_times)
+        #     state2 = c(state2, rep(state[k], length(inter_times)))
+        #     
+        #     if(k + 1 == length(visitTimes)) {
+        #         visitTimes2 = c(visitTimes2, visitTimes[k+1])
+        #         state2 = c(state2, state[k+1])
+        #     }
+        # }
+        # 
+        # visitTimes = visitTimes2
+        # state = state2
         
         while(time2 < timeOfDeath){
             visitTimes2 <- c( visitTimes2, time2)
             time2 <- time2 + sample( interObsTime, size=1) + runif(1, min = 0, max = 0.1)
         }
-        
+
         if(length(visitTimes2) > 1) {
             visitTimes2 = visitTimes2[-1]
-            for(k in 1:length(visitTimes2)){  
-                state2 <- c( state2, tail( trueState[ years <= visitTimes2[k] ], 1))  
-            }   
-            
+            for(k in 1:length(visitTimes2)){
+                state2 <- c( state2, tail( trueState[ years <= visitTimes2[k] ], 1))
+            }
+
             combo_visits = rbind(cbind(visitTimes, state), cbind(visitTimes2, state2))
             combo_visits = combo_visits[order(combo_visits[,1]),]
-            
+
             visitTimes = combo_visits[,1]
             state = combo_visits[,2]
         }
         
-        # # Remove time instances > 15
-        # keep_ind = which(visitTimes < 15)
-        # 
-        # visitTimes = visitTimes[keep_ind]
-        # state = state[keep_ind]
         
         n_i = length(visitTimes)
 

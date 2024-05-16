@@ -11,18 +11,30 @@ print(paste0("iteration ", num_iter))
 set.seed(num_iter)
 
 # Set the sample size.  Note that the true cav data set has 622 subjects.
-N <- 1000
+N <- 2000
 # Choose the discretization for "instantaneous" time.
-dt <- 1/365
+dt <- 1/1000
 
 par_index = list( beta=1:18)
 
-trueValues=c(matrix(c(-2, 0.5,  0.4689827,
-                      -2, 0.5,  0.2557522,
-                      -3, 0.5, -0.1457067,
-                      -3, 0.5,  0.8164156,
-                      -3, 0.5, -0.5966361,
-                      -3, 0.5, -0.7967794), ncol = 3, byrow = T))
+
+
+# trueValues=c(matrix(c(-3,  0.50, -0.4689827,
+#                       -3,  0.50,  0.2557522,
+#                       -3,  0.50, -0.1457067,
+#                       -3,  0.50, -0.8164156,
+#                       -3,  0.50,  0.5966361,
+#                       -3,  0.50,  0.7967794), ncol = 3, byrow = T))
+trueValues=c(matrix(c(-2.742924, 0.4553377, -0.03769474,
+                      -3.242760, 0.5973436,  0.48973652,
+                      -6.874222, 1.0878027, -0.50953974,
+                      -6.919877, 1.2666980,  0.72539908,
+                      -7.321201, 1.1865268, -0.77354619,
+                      -7.471980, 1.3772730, -0.72377494), ncol = 3, byrow = T))
+
+# init = c(1/3, 1/3, 1/3)
+init = c(1,0,0)
+ 
 
 betaMat <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 
@@ -89,12 +101,13 @@ while(i <= N){
     
     # Sample for an initial state.
     trueState <- 1 # everyone starts in state 1
+    # trueState <- sample(x = 1:3, size = 1, prob = init)
     
     # Sample the remaining states until death.
     years <- 0
     time1 <- 0
     s <- trueState
-    max_time = rpois(1, lambda = 8)
+    max_time = 6
     while(time1 < max_time){
         # Infinitesimal transition rates.
         qmat <- Q(time1,sex,betaMat)
@@ -127,6 +140,29 @@ while(i <= N){
         visitTimes = c(0, transition_times)
         state = c(trueState[1], transition_times_state)
         
+        # Add more observations per subject
+        visitTimes2 <- NULL
+        state2 <- NULL
+        time2 <- 0
+        
+        while(time2 < timeOfDeath){
+            visitTimes2 <- c( visitTimes2, time2)
+            time2 <- time2 + sample( interObsTime, size=1) + runif(1, min = 0, max = 0.1)
+        }
+
+        if(length(visitTimes2) > 1) {
+            visitTimes2 = visitTimes2[-1]
+            for(k in 1:length(visitTimes2)){
+                state2 <- c( state2, tail( trueState[ years <= visitTimes2[k] ], 1))
+            }
+
+            combo_visits = rbind(cbind(visitTimes, state), cbind(visitTimes2, state2))
+            combo_visits = combo_visits[order(combo_visits[,1]),]
+
+            visitTimes = combo_visits[,1]
+            state = combo_visits[,2]
+        }
+        
         n_i = length(visitTimes)
 
     } else {
@@ -150,6 +186,12 @@ while(i <= N){
     }
 
     if(n_i > 1) {
+        if(n_i > 6) {
+            new_n_i = sample(4:6, 1)
+            visitTimes = visitTimes[1:new_n_i]
+            state = state[1:new_n_i]
+            n_i = new_n_i
+        }
         ptnum <- rep(i,n_i)
         years <- visitTimes
         

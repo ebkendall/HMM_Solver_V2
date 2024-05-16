@@ -2,50 +2,61 @@ library(mvtnorm, quietly=T);library(foreach, quietly=T);library(msm, quietly=T)
 library(doParallel, quietly=T);library(deSolve, quietly=T)
 
 # Construct the transition rate matrix
-Q <- function(time,sex,betaMat){
-    
-    q1  = exp( c(1,time,sex) %*% betaMat[1,] )  
-    q2  = exp( c(1,time,sex) %*% betaMat[2,] )  
-    q3  = exp( c(1,time,sex) %*% betaMat[3,] )  
-    q4  = exp( c(1,time,sex) %*% betaMat[4,] )  
-    q5  = exp( c(1,time,sex) %*% betaMat[5,] )
-    q6  = exp( c(1,time,sex) %*% betaMat[6,] )
-    
-    qmat = matrix(c( 0, q1, q2,
-                     q3,  0, q4,
-                     q5, q6,  0) ,nrow=3,byrow=TRUE)
-    diag(qmat) = -rowSums(qmat)
-    
-    return(qmat)
+Q <- function(t,x_ik,beta){
+
+  betaMat = matrix(beta, ncol = 3, byrow = F) 
+  q1  = exp( c(1,t,x_ik) %*% betaMat[1,] )  # Transition from state 1 to state 2.
+  q2  = exp( c(1,t,x_ik) %*% betaMat[2,] )  # Transition from state 1 to death.
+  q3  = exp( c(1,t,x_ik) %*% betaMat[3,] )  # Transition from state 2 to state 3.
+  q4  = exp( c(1,t,x_ik) %*% betaMat[4,] )  # Transition from state 2 to death.
+  q5  = exp( c(1,t,x_ik) %*% betaMat[5,] )  # Transition from state 3 to death.
+
+  qmat = matrix(c( 0,q1, 0,q2,
+                   0, 0,q3,q4,
+                   0, 0, 0,q5,
+                   0, 0, 0, 0),nrow=4,byrow=TRUE)
+  diag(qmat) = -rowSums(qmat)
+
+  return(qmat)
 }
 
+# Setting up the differential equations for deSolve
 model_t <- function(t,p,parms) {
-    betaMat <- matrix(parms$b, ncol = 3, byrow = F)
-    
-    qmat = Q(t, parms$x_ik, betaMat)
-    pmat = matrix(c(  p[1],  p[2],  p[3],
-                      p[4],  p[5],  p[6],
-                      p[7],  p[8],  p[9]),
-                  nrow = 3, byrow = T)
-    
-    # Vectorizing the matrix multiplication row-wise
-    dP = c(t(pmat %*% qmat))
-    
-    return(list(dP))
+
+  betaMat <- matrix(parms$b, ncol = 3, byrow = F)
+
+  q1  = exp( c(1,t,parms$x_ik) %*% betaMat[1,] )  # Transition from state 1 to state 2.   
+  q2  = exp( c(1,t,parms$x_ik) %*% betaMat[2,] )  # Transition from state 1 to death.     
+  q3  = exp( c(1,t,parms$x_ik) %*% betaMat[3,] )  # Transition from state 2 to state 3.   
+  q4  = exp( c(1,t,parms$x_ik) %*% betaMat[4,] )  # Transition from state 2 to death.     
+  q5  = exp( c(1,t,parms$x_ik) %*% betaMat[5,] )  # Transition from state 3 to death.     
+
+  dP = rep(1,9) # this is the vector with all differential equations
+
+  dP[1] = p[1]*(-q1-q2)
+  dP[2] = p[1]*q1 + p[2]*(-q3-q4)
+  dP[3] = p[2]*q3 - p[3]*q5
+  dP[4] = p[1]*q2 + p[2]*q4 + p[3]*q5
+  dP[5] = p[5]*(-q3-q4)
+  dP[6] = p[5]*q3 - p[6]*q5
+  dP[7] = p[5]*q4 + p[6]*q5
+  dP[8] = -p[8]*q5
+  dP[9] = p[8]*q5
+
+  return(list(dP))
+
 }
 
 # Evaluating the log posterior
-fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, exact_time) {
+fn_log_post <- function(pars, prior_par, par_index, x, y, t, id) {
 
     # Initial state probabilities
-    init = c(1,0,0)
+    init = c(1,0,0,0)
 
-    resp_fnc = diag(3)
+    resp_fnc = diag(4)
 
-    beta <- matrix(pars[par_index$beta], ncol = 3)
-    p_ic <- c( p1=1, p2=0, p3=0,
-               p4=0, p5=1, p6=0,
-               p7=0, p8=0, p9=1) # initial condition for deSolve
+    beta <- pars[par_index$beta]
+    p_ic <- c(p1=1,p2=0,p3=0,p4=0,p5=1,p6=0,p7=0,p8=1,p9=0) # initial condition for deSolve
 
     # Parallelized computation of the log-likelihood
     log_total_val = foreach(i=unique(id), .combine='+', 
@@ -64,21 +75,17 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, exact_time) {
 
             out <- deSolve::ode(p_ic, times = t_i[(k-1):k], func = model_t,
                                 parms = list(b=beta, x_ik = x_i[k,]))
-            P <- matrix(c( out[2,"p1"],  out[2,"p2"],  out[2,"p3"],  
-                           out[2,"p4"],  out[2,"p5"],  out[2,"p6"],  
-                           out[2,"p7"],  out[2,"p8"],  out[2,"p9"]),
-                        nrow = 3, byrow = T)
 
-            # exact_time = T -> we need to account for exact transition time
-            if(exact_time) {
-                if(y_i[k] != y_i[k-1]) {
-                    # Transition occurred and we have the exact transition time
-                    val = f_i %*% P %*% Q(t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
-                } else {
-                    val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
-                }
-            } else { # death is observed
+            P <- matrix(c(out[2,"p1"], out[2,"p2"], out[2,"p3"], out[2,"p4"],
+                            0, out[2,"p5"], out[2,"p6"], out[2,"p7"],
+                            0,  0, out[2,"p8"], out[2,"p9"],
+                            0,  0,  0,  1), nrow = 4, byrow = T)
+
+            # Checking if death (state = 4) has occurred
+            if(y_i[k] != 4) {
                 val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
+            } else { # death is observed
+                val = f_i %*% P %*% Q(t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
             }
 
             norm_val = sqrt(sum(val^2))
@@ -101,7 +108,7 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, exact_time) {
 # The mcmc routine for samping the parameters
 # -----------------------------------------------------------------------------
 mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
-                         steps, burnin, n_cores, exact_time){
+                         steps, burnin, n_cores){
 
   cl <- makeCluster(n_cores, outfile="")
   registerDoParallel(cl)
@@ -111,9 +118,7 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
   n_par = length(pars)
   chain = matrix( 0, steps, n_par)
 
-  group = list(c(par_index$beta[1:6]), 
-               c(par_index$beta[7:12]),
-               c(par_index$beta[13:18]))
+  group = list(c(par_index$beta))
   n_group = length(group)
 
   pcov = list();	for(j in 1:n_group)  pcov[[j]] = diag(length(group[[j]]))
@@ -121,7 +126,7 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
   accept = rep( 0, n_group)
 
   # Evaluate the log posterior of the initial parameters
-  log_post_prev = fn_log_post( pars, prior_par, par_index, x, y, t, id, exact_time)
+  log_post_prev = fn_log_post( pars, prior_par, par_index, x, y, t, id)
 
   if(!is.finite(log_post_prev)){
     print("Infinite log-posterior; choose better initial parameters")
@@ -139,7 +144,7 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
       proposal[ind_j] = rmvnorm( n=1, mean=pars[ind_j],sigma=pcov[[j]]*pscale[j])
 
       # Compute the log density for the proposal
-      log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id, exact_time)
+      log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id)
 
       # Only propose valid parameters during the burnin period
       if(ttt < burnin){
@@ -148,7 +153,7 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
           proposal = pars
           proposal[ind_j] = rmvnorm( n=1, mean=pars[ind_j],
                                      sigma=pcov[[j]]*pscale[j])
-          log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id, exact_time)
+          log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id)
         }
       }
 

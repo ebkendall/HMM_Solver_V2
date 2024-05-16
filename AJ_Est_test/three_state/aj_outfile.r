@@ -4,23 +4,28 @@ exact_time = as.logical(as.numeric(args[1]))
 par_index = list( beta=1:18)
 
 par_est_mat_split = matrix(nrow = 100, ncol = length(par_index$beta))
-par_est_mat       = matrix(nrow = 100, ncol = length(par_index$beta))
+par_est_mat       = matrix(nrow = 98, ncol = length(par_index$beta))
 
 # Load the MCMC results
 chain_list <- NULL
 n_post = 9000; burnin = 1000; steps = 10000
 index_post = (steps - burnin - n_post + 1):(steps - burnin)
 
+ind_i = 1
 for(i in 1:100) {
-    if(exact_time) {
-        load(paste0('Model_out/exactTime/mcmc_out_', i, '.rda'))
-    } else {
-        load(paste0('Model_out/interTime/mcmc_out_', i, '.rda'))
+    if(!(i %in% c(39, 61))) {
+        if(exact_time) {
+            load(paste0('Model_out/exactTime/mcmc_out_', i, '.rda'))
+        } else {
+            load(paste0('Model_out/interTime/mcmc_out_', i, '.rda'))
+        }
+        
+        chain_list[[ind_i]] = mcmc_out$chain
+        print(mcmc_out$accept)
+        
+        par_est_mat[ind_i,] = colMeans(mcmc_out$chain[,par_index$beta])   
+        ind_i = ind_i + 1
     }
-    
-    chain_list[[i]] = mcmc_out$chain
-    
-    par_est_mat[i,] = colMeans(mcmc_out$chain[,par_index$beta])
 }
 
 stacked_chains = do.call( rbind, chain_list)
@@ -55,12 +60,18 @@ labels <- c('baseline S1 ---> S2',
             'sex S3 ---> S1',
             'sex S3 ---> S2')
 
-trueValues= c(matrix(c(-2, 0.5,  0.4689827,
-                       -2, 0.5,  0.2557522,
-                       -3, 0.5, -0.1457067,
-                       -3, 0.5,  0.8164156,
-                       -3, 0.5, -0.5966361,
-                       -3, 0.5, -0.7967794), ncol = 3, byrow = T))
+# trueValues= c(matrix(c(-2, 0.5,  0.4689827,
+#                        -2, 0.5,  0.2557522,
+#                        -3, 0.5, -0.1457067,
+#                        -3, 0.5,  0.8164156,
+#                        -3, 0.5, -0.5966361,
+#                        -3, 0.5, -0.7967794), ncol = 3, byrow = T))
+trueValues=c(matrix(c(-3,  0.50, -0.4689827,
+                      -3,  0.50,  0.2557522,
+                      -3,  0.50, -0.1457067,
+                      -3,  0.50, -0.8164156,
+                      -3,  0.50,  0.5966361,
+                      -3,  0.50,  0.7967794), ncol = 3, byrow = T))
 
 # Plot and save the mcmc trace plots and histograms.
 library(tidyverse)

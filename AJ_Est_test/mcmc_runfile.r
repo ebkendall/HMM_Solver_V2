@@ -10,14 +10,13 @@ set.seed(it)
 print(it)
 
 
-init_par= c(matrix(c(-2, 0.5, -0.4689827,
-                     -2, 0.5, -0.2557522,
-                     -3, 0.5,  0.1457067,
-                     -3, 0.5,  0.8164156,
-                     -3, 0.5, -0.5966361,
-                     -3, 0.5,  0.7967794), ncol = 3, byrow = T))
+init_par= c(-2.31617310,  -1.28756312,  -1.10116400,  -2.52367543,  -2.10384797,
+              0.27050001, -11.65470594,  -0.49306415,   0.28862090,   0.22731278,
+              -0.39079609,  -0.05894252,  -0.32509646,   0.48631653,   0.99565810,
+              -5.28923943,  -0.90870027,  -2.40751854,  -2.44696544,  -6.52252202,
+              -6.24090500)
 
-par_index = list( beta=1:18)
+par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
 # Defining the mean and variance for the flat Gaussian prior
 prior_par = data.frame( prior_mean=rep( 0, length(init_par)),
@@ -34,24 +33,15 @@ id = temp_data[,"ptnum"]
 y = temp_data[,"state"]
 x = temp_data[, c("disc_time", "sex"), drop=F]
 t = temp_data[,"years"]
-
-# Center Time
-mean_time = mean(t)
-t = t - mean_time
-init_par[1:6] = init_par[1:6] - mean_time * init_par[7:12]
-
-
 steps = 10000
-burnin = 2000
+burnin = 1000
 n_cores = 16
 
 
 s_time = Sys.time()
 
 mcmc_out = mcmc_routine(y, x, t, id, init_par, prior_par, par_index,
-             steps, burnin, n_cores, exact_time)
-
-mcmc_out$chain[,1:6] = mcmc_out$chain[,1:6] + mean_time * mcmc_out$chain[,7:12]
+             steps, burnin, n_cores)
 
 e_time = Sys.time() - s_time; print(e_time)
 
