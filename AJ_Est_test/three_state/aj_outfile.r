@@ -60,12 +60,12 @@ labels <- c('baseline S1 ---> S2',
             'sex S3 ---> S1',
             'sex S3 ---> S2')
 
-trueValues=c(matrix(c(-3,  0.50, -0.4689827,
-                      -3,  0.50,  0.2557522,
-                      -3,  0.50, -0.1457067,
-                      -3,  0.50, -0.8164156,
-                      -3,  0.50,  0.5966361,
-                      -3,  0.50,  0.7967794), ncol = 3, byrow = T))
+trueValues=c(matrix(c(-3,  0.50, 0.75,
+                      -3,  0.50, 0.75,
+                      -3,  0.50, 0.75,
+                      -3,  0.50, 0.75,
+                      -3,  0.50, 0.75,
+                      -3,  0.50, 0.75), ncol = 3, byrow = T))
 
 # Plot and save the mcmc trace plots and histograms.
 library(tidyverse)

@@ -11,7 +11,7 @@ print(paste0("iteration ", num_iter))
 set.seed(num_iter)
 
 # Set the sample size.  Note that the true cav data set has 622 subjects.
-N <- 4000
+N <- 2000
 # Choose the discretization for "instantaneous" time.
 dt <- 1/365
 
@@ -22,9 +22,6 @@ trueValues= c(-2.31617310,  -1.28756312,  -1.10116400,  -2.52367543,  -2.1038479
               -0.39079609,  -0.05894252,  -0.32509646,   0.48631653,   0.99565810,
               -5.28923943,  -0.90870027,  -2.40751854,  -2.44696544,  -6.52252202,
               -6.24090500)
-trueValues[10] = 1
-trueValues[8] = trueValues[8] * -1
-trueValues[15] = 0.4
 
 betaMat <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 

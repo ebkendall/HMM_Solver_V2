@@ -10,12 +10,12 @@ set.seed(it)
 print(it)
 
 
-trueValues=c(matrix(c(-3,  0.50, -0.4689827,
-                      -3,  0.50,  0.2557522,
-                      -3,  0.50, -0.1457067,
-                      -3,  0.50, -0.8164156,
-                      -3,  0.50,  0.5966361,
-                      -3,  0.50,  0.7967794), ncol = 3, byrow = T))
+init_par=c(matrix(c(-3,  0.50, 0.75,
+                    -3,  0.50, 0.75,
+                    -3,  0.50, 0.75,
+                    -3,  0.50, 0.75,
+                    -3,  0.50, 0.75,
+                    -3,  0.50, 0.75), ncol = 3, byrow = T))
 
 par_index = list( beta=1:18)
 
@@ -28,6 +28,9 @@ if(exact_time) {
 } else {
     load(paste0('DataOut/interTime/cavData', it, '.rda'))
 }
+
+# Sample size of 2000
+cavData = cavData[cavData$ptnum %in% c(1:2000), ]
 
 temp_data = as.matrix(cavData); rownames(temp_data) = NULL
 id = temp_data[,"ptnum"]
@@ -42,7 +45,7 @@ init_par[1:6] = init_par[1:6] - mean_time * init_par[7:12]
 
 
 steps = 10000
-burnin = 2000
+burnin = 1000
 n_cores = 16
 
 

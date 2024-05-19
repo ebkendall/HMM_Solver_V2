@@ -38,6 +38,7 @@ model_t <- function(t,p,parms) {
 fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, exact_time) {
 
     # Initial state probabilities
+    # init = c(1,0,0)
     init = c(1/3,1/3,1/3)
 
     resp_fnc = diag(3)
@@ -131,6 +132,8 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
   # Begin the MCMC algorithm --------------------------------------------------
   chain[1,] = pars
   for(ttt in 2:steps){
+      
+    if(ttt %% 100 == 0) {print(matrix(pars[par_index$beta], ncol = 3))}
     for(j in 1:n_group){
 
       # Propose an update
@@ -153,11 +156,14 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
       }
 
       # Evaluate the Metropolis-Hastings ratio
-      if( log_post - log_post_prev > log(runif(1,0,1)) ){
-        log_post_prev = log_post
-        pars[ind_j] = proposal[ind_j]
-        accept[j] = accept[j] +1
+      if(is.finite(log_post)) {
+          if( log_post - log_post_prev > log(runif(1,0,1)) ){
+              log_post_prev = log_post
+              pars[ind_j] = proposal[ind_j]
+              accept[j] = accept[j] +1
+          }   
       }
+      
       chain[ttt,ind_j] = pars[ind_j]
 
       # Proposal tuning scheme ------------------------------------------------

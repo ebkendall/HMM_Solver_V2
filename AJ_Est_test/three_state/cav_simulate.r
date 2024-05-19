@@ -4,7 +4,7 @@ library(msm)
 # num_iter = as.numeric(args[1])
 # exact_time = as.logical(as.numeric(args[2]))
 num_iter = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
-exact_time = T
+exact_time = F
 
 print(paste0("iteration ", num_iter))
 
@@ -19,16 +19,17 @@ par_index = list( beta=1:18)
 
 # trueValues=c(matrix(c(-3,  0.50, -0.4689827,
 #                       -3,  0.50,  0.2557522,
-#                       -4,  1.00, -0.1457067,
-#                       -4,  1.00, -0.8164156,
-#                       -5,  1.50,  0.5966361,
-#                       -5,  1.50,  0.7967794), ncol = 3, byrow = T))
-trueValues=c(matrix(c(-3,  0.50, -0.4689827,
-                      -3,  0.50,  0.2557522,
-                      -3,  0.50, -0.1457067,
-                      -3,  0.50, -0.8164156,
-                      -3,  0.50,  0.5966361,
-                      -3,  0.50,  0.7967794), ncol = 3, byrow = T))
+#                       -3,  0.50, -0.1457067,
+#                       -3,  0.50, -0.8164156,
+#                       -3,  0.50,  0.5966361,
+#                       -3,  0.50,  0.7967794), ncol = 3, byrow = T))
+
+trueValues=c(matrix(c(-3,  0.50, 0.75,
+                      -3,  0.50, 0.75,
+                      -3,  0.50, 0.75,
+                      -3,  0.50, 0.75,
+                      -3,  0.50, 0.75,
+                      -3,  0.50, 0.75), ncol = 3, byrow = T))
 
 # init = c(1,0,0)
 init = c(1/3, 1/3, 1/3)
@@ -98,7 +99,8 @@ while(i <= N){
     sex <- sample(c(0,1), size = 1)
     
     # Sample for an initial state.
-    trueState <- 1 # everyone starts in state 1
+    # trueState <- 1 # everyone starts in state 1
+    trueState <- sample(x = 1:3, size = 1, prob = init)
     
     # Sample the remaining states until death.
     years <- 0

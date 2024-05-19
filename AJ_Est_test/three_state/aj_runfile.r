@@ -8,18 +8,12 @@ for(it in 1:100) {
     
     par_index = list( beta=1:18)
     
-    trueValues=c(matrix(c(-3,  0.50, -0.4689827,
-                      -3,  0.50,  0.2557522,
-                      -3,  0.50, -0.1457067,
-                      -3,  0.50, -0.8164156,
-                      -3,  0.50,  0.5966361,
-                      -3,  0.50,  0.7967794), ncol = 3, byrow = T))
-    # trueValues=c(matrix(c(-2.742924, 0.4553377, -0.03769474,
-    #                   -3.242760, 0.5973436,  0.48973652,
-    #                   -6.874222, 1.0878027, -0.50953974,
-    #                   -6.919877, 1.2666980,  0.72539908,
-    #                   -7.321201, 1.1865268, -0.77354619,
-    #                   -7.471980, 1.3772730, -0.72377494), ncol = 3, byrow = T))
+    trueValues=c(matrix(c(-3,  0.50, 0.75,
+                          -3,  0.50, 0.75,
+                          -3,  0.50, 0.75,
+                          -3,  0.50, 0.75,
+                          -3,  0.50, 0.75,
+                          -3,  0.50, 0.75), ncol = 3, byrow = T))
     
     beta <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
     
@@ -29,6 +23,9 @@ for(it in 1:100) {
     } else {
         load(paste0('DataOut/interTime/cavData', it, '.rda'))
     }
+    
+    # Sample size of 2000
+    cavData = cavData[cavData$ptnum %in% c(1:2000), ]
     
     eid = unique(cavData$ptnum)
     
