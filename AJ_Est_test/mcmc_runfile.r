@@ -11,12 +11,10 @@ print(it)
 
 
 init_par= c(-2.31617310,  -1.28756312,  -1.10116400,  -2.52367543,  -2.10384797,
-              0.27050001, -11.65470594,  -0.49306415,   0.28862090,   0.22731278,
-              -0.39079609,  -0.05894252,  -0.32509646,   0.48631653,   0.99565810,
-              -5.28923943,  -0.90870027,  -2.40751854,  -2.44696544,  -6.52252202,
-              -6.24090500)
+             0.27050001, -11.65470594,  -0.49306415,   0.28862090,   0.22731278,
+            -0.39079609,  -0.05894252,  -0.32509646,   0.48631653,   0.99565810)
 
-par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
+par_index = list( beta=1:15)
 
 # Defining the mean and variance for the flat Gaussian prior
 prior_par = data.frame( prior_mean=rep( 0, length(init_par)),
@@ -37,11 +35,20 @@ steps = 10000
 burnin = 1000
 n_cores = 16
 
+# # Center & Scale Time
+# mean_time = mean(t)
+# sd_time = sd(t)
+# t = (t - mean_time) / sd_time
+# init_par[1:5] = init_par[1:5] - (mean_time/sd_time) * init_par[6:10]
+# init_par[6:10] = init_par[6:10] / sd_time
 
 s_time = Sys.time()
 
 mcmc_out = mcmc_routine(y, x, t, id, init_par, prior_par, par_index,
-             steps, burnin, n_cores)
+             steps, burnin, n_cores, exact_time)
+
+# mcmc_out$mean_time = mean_time
+# mcmc_out$sd_time = sd_time
 
 e_time = Sys.time() - s_time; print(e_time)
 

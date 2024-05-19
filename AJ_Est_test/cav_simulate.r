@@ -133,24 +133,6 @@ while(i <= N){
         visitTimes2 <- NULL
         state2 <- NULL
         time2 <- 0
-        # for(k in 1:(length(visitTimes) - 1)) {
-        #     visitTimes2 = c(visitTimes2, visitTimes[k])
-        #     state2 = c(state2, state[k])
-        #     
-        #     l_out = 4
-        #     inter_times = seq(visitTimes[k], visitTimes[k+1], length.out = l_out)
-        #     inter_times = inter_times[c(-1,-l_out)]
-        #     visitTimes2 = c(visitTimes2, inter_times)
-        #     state2 = c(state2, rep(state[k], length(inter_times)))
-        #     
-        #     if(k + 1 == length(visitTimes)) {
-        #         visitTimes2 = c(visitTimes2, visitTimes[k+1])
-        #         state2 = c(state2, state[k+1])
-        #     }
-        # }
-        # 
-        # visitTimes = visitTimes2
-        # state = state2
         
         while(time2 < timeOfDeath){
             visitTimes2 <- c( visitTimes2, time2)

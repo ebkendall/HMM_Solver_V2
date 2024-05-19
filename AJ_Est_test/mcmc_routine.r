@@ -48,7 +48,7 @@ model_t <- function(t,p,parms) {
 }
 
 # Evaluating the log posterior
-fn_log_post <- function(pars, prior_par, par_index, x, y, t, id) {
+fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, exact_time) {
 
     # Initial state probabilities
     init = c(1,0,0,0)
@@ -63,13 +63,14 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id) {
                             .export = c("model_t", "Q"), 
                             .packages = c("deSolve")) %dopar% {
 
-        val = 1
         y_i = y[id == i]                # the observed state
         x_i = x[id == i,"sex",drop = F] # only the sex covariate
         t_i = t[id == i]                # continuous time
-
-        f_i = init %*% diag(resp_fnc[, y_i[1]])
-        log_norm = 0
+        
+        # val = 1
+        # f_i = init %*% diag(resp_fnc[, y_i[1]])
+        # log_norm = 0
+        f_i = init[y_i[1]]
 
         for(k in 2:length(t_i)) {
 
@@ -85,27 +86,32 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id) {
             if(exact_time) {
                 if(y_i[k] != y_i[k-1]) {
                     # Transition occurred and we have the exact transition time
-                    val = f_i %*% P %*% Q(t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
+                    # val = f_i %*% P %*% Q(t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
+                    q_curr = Q(t_i[k], x_i[k,], beta)
+                    f_i = f_i * P[y_i[k-1], y_i[k]] * q_curr[y_i[k-1], y_i[k]]
                 } else {
-                    val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
+                    # val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
+                    f_i = f_i * P[y_i[k-1], y_i[k]]
                 }
             } else { 
                 # Checking if death (state = 4) has occurred
                 if(y_i[k] != 4) {
-                    val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
-                } else { # death is observed
-                    val = f_i %*% P %*% Q(t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
+                    # val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
+                    f_i = f_i * P[y_i[k-1], y_i[k]]
+                } else {
+                    # val = f_i %*% P %*% Q(t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
+                    q_curr = Q(t_i[k], x_i[k,], beta)
+                    f_i = f_i * P[y_i[k-1], y_i[k]] * q_curr[y_i[k-1], y_i[k]]
                 }
             }
-            
 
-
-            norm_val = sqrt(sum(val^2))
-            f_i = val / norm_val
-            log_norm = log_norm + log(norm_val)
+            # norm_val = sqrt(sum(val^2))
+            # f_i = val / norm_val
+            # log_norm = log_norm + log(norm_val)
         }
 
-        return(log(sum(f_i)) + log_norm)
+        # return(log(sum(f_i)) + log_norm)
+        return(log(f_i))
     }
 
     mean = prior_par$prior_mean
@@ -120,7 +126,7 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id) {
 # The mcmc routine for samping the parameters
 # -----------------------------------------------------------------------------
 mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
-                         steps, burnin, n_cores){
+                         steps, burnin, n_cores, exact_time){
 
   cl <- makeCluster(n_cores, outfile="")
   registerDoParallel(cl)
@@ -140,7 +146,7 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
   accept = rep( 0, n_group)
 
   # Evaluate the log posterior of the initial parameters
-  log_post_prev = fn_log_post( pars, prior_par, par_index, x, y, t, id)
+  log_post_prev = fn_log_post( pars, prior_par, par_index, x, y, t, id, exact_time)
 
   if(!is.finite(log_post_prev)){
     print("Infinite log-posterior; choose better initial parameters")
@@ -150,6 +156,8 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
   # Begin the MCMC algorithm --------------------------------------------------
   chain[1,] = pars
   for(ttt in 2:steps){
+      
+    if(ttt %% 100 == 0) {print(matrix(pars[par_index$beta], ncol = 3))}
     for(j in 1:n_group){
 
       # Propose an update
@@ -158,7 +166,7 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
       proposal[ind_j] = rmvnorm( n=1, mean=pars[ind_j],sigma=pcov[[j]]*pscale[j])
 
       # Compute the log density for the proposal
-      log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id)
+      log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id, exact_time)
 
       # Only propose valid parameters during the burnin period
       if(ttt < burnin){
@@ -167,15 +175,19 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
           proposal = pars
           proposal[ind_j] = rmvnorm( n=1, mean=pars[ind_j],
                                      sigma=pcov[[j]]*pscale[j])
-          log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id)
+          log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id, exact_time)
         }
       }
 
       # Evaluate the Metropolis-Hastings ratio
-      if( log_post - log_post_prev > log(runif(1,0,1)) ){
-        log_post_prev = log_post
-        pars[ind_j] = proposal[ind_j]
-        accept[j] = accept[j] +1
+      if(is.finite(log_post)) {
+          if( log_post - log_post_prev > log(runif(1,0,1)) ){
+              log_post_prev = log_post
+              pars[ind_j] = proposal[ind_j]
+              accept[j] = accept[j] +1
+          }
+      } else {
+          print('bad proposal post burnin')
       }
       chain[ttt,ind_j] = pars[ind_j]
 
