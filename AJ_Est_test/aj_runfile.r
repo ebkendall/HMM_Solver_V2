@@ -74,7 +74,7 @@ for(it in 1:100) {
     # Using optim to get parameter estimates -----------------------------------
     #  -------------------------------------------------------------------------
     min_residuals <- function(data, par) {
-        with(data, sum(( (1/par[2]) * (exp(par[1] + par[2]*t + par[3]*x) - exp(par[1] + par[3]*x)) - y)^2))
+        with(data, sum(abs( (1/par[2]) * (exp(par[1] + par[2]*t + par[3]*x) - exp(par[1] + par[3]*x)) - y)))
     }
     
     optim_coeff_split = matrix(0, nrow = 5, ncol = 3)

@@ -4,7 +4,7 @@ source("mcmc_routine.r")
 # it = as.numeric(args[1])
 # exact_time = as.logical(as.numeric(args[2]))
 it = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
-exact_time = T
+exact_time = F
 
 set.seed(it)
 print(it)
