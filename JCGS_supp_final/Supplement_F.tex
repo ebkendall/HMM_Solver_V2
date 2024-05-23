@@ -1,0 +1,81 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Supplementary Materials Organization}
+\date{\vspace{-5ex}}
+
+% Package includes --------------
+\usepackage[left=1.5cm, right=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{enumerate}
+\usepackage{mathrsfs}
+\usepackage{color}
+\def\cc{\color{blue}}
+\usepackage{physics}
+
+\usepackage{amsthm}
+\usepackage[normalem]{ulem}
+%\usepackage[labelformat=empty]{caption}
+\usepackage{bm}
+\usepackage{arydshln} % allows dashed lines
+\usepackage{amsmath, amssymb, amsxtra, amsfonts}
+\usepackage{epsfig, epsf, epic, graphicx}
+\usepackage{fancybox, lscape, subfigure}
+\usepackage{graphics}
+\usepackage{natbib}
+\usepackage{hyperref}
+\usepackage{comment}
+\usepackage{listings}
+\usepackage[svgnames]{xcolor}
+\usepackage[T1]{fontenc}
+
+\lstset{language=R,
+    basicstyle=\small\ttfamily,
+    stringstyle=\color{DarkGreen},
+    otherkeywords={0,1,2,3,4,5,6,7,8,9},
+    morekeywords={TRUE,FALSE},
+    deletekeywords={data,frame,length,as,character},
+    keywordstyle=\color{blue},
+    commentstyle=\color{DarkGreen},
+}
+
+% New commands defined --------
+\newcommand{\newsec}[1]{\begin{center}
+    \dotfill \textit{#1} \dotfill
+\end{center}}
+
+\newcommand{\bb}{\boldsymbol \beta}
+\newcommand{\ba}{\boldsymbol \alpha}
+
+
+\begin{document}
+
+\noindent \textbf{\LARGE Supplementary Material F: Aalen-Johansen, Nelson-Aalen, and \texttt{prodint} applications}\\
+\vspace{0.25in}
+
+\noindent The contents include: 
+\begin{enumerate}[(a)]
+\item violin plots for an additional simulation study where using the Aalen-Johansen and Nelson-Aalen estimators result in unbiased estimation of transition rate parameters
+\item computational time differences between using approach (A) with \texttt{deSolve} versus with \texttt{prodint}
+\end{enumerate}
+\vspace{0.25in}
+
+\section*{Part (a)}
+
+\newpage
+
+\section*{Part (b)}
+Using the same simulated data and modeling structure as found in Section 3.3 of the manuscript, we can compare the computational time differences between using approach (A) with \texttt{deSolve} as opposed to with \texttt{prodint}. In order for \texttt{prodint} to numerically compute the transition probability matrix between two time points, say $t_k$ and $t_{k+1}$ ($t_{k+1} > t_{k}$), it requires defining a step-size from which the interval between $t_k$ and $t_{k+1}$ is discretized into smaller subintervals of length equal to the step-size. Because the interval of time over which we are numerically integrating changes within and across subjects in the data, we define the step-size to take the general form 
+$$\text{step-size} = \frac{t_{k+1} - t_{k}}{s}$$
+where $s$ is a fixed, positive integer defining the number of discretized subintervals (e.g., if $s=2$ then the interval between $t_k$ and $t_{k+1}$ is split into two equal subintervals with step-size equal to $\frac{t_{k+1} - t_{k}}{2}$). Recall that applying approach (A) with \texttt{deSolve} does \textit{not} require defining a step-size. Thus, for a fixed data set, the likelihood is computed using approach (A) with \texttt{deSolve}. Then, using the same data set, the likelihood is computed using approach (A) with \texttt{prodint} for various step-sizes. \begin{figure}[!htb]
+\centering
+\includegraphics[scale =.225]{Supplement/AJ/prodint_like.png}\\
+\includegraphics[scale =.225]{Supplement/AJ/prodint_time.png}
+\caption{\footnotesize Differences between using approach (A) with \texttt{deSolve} compared to with \texttt{prodint}. Note that the red dotted line in the bottom figure represents the computation time for evaluating the likelihood using \texttt{deSolve}. }\label{fig:b1}
+\end{figure}
+Figure \ref{fig:b1} presents the squared difference in likelihood between using \texttt{prodint} over multiple values of $s$ with the likelihood computed using \texttt{deSolve} (top), as well as how the computation time using \texttt{prodint} changes as $s$ increases (bottom). We see that for a smaller number of subintervals (i.e., larger magnitude step-size), \texttt{prodint} computes a likelihood with a larger deviation away from the likelihood computed using \texttt{deSolve}. Additionally, we see that as the number of subintervals increases (i.e., step-size decreases), the computation time using \texttt{prodint} increases almost linearly. Hence, because \texttt{prodint} requires defining a step-size size, it quickly becomes computationally infeasible compared to using \texttt{deSolve}; however, aside from computation time, we see that the two numerical integration techniques lead to nearly the exact same likelihood computations, for a sufficiently large number of subintervals (i.e., small step-size) in the case of \texttt{prodint}.
+
+\end{document}
+
+

@@ -1,0 +1,120 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Supplementary Materials Organization}
+\date{\vspace{-5ex}}
+
+% Package includes --------------
+\usepackage[left=1.5cm, right=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{enumerate}
+\usepackage{mathrsfs}
+\usepackage{color}
+\def\cc{\color{blue}}
+\usepackage{physics}
+
+\usepackage{amsthm}
+\usepackage[normalem]{ulem}
+\usepackage[labelformat=empty]{caption}
+\usepackage{bm}
+\usepackage{arydshln} % allows dashed lines
+\usepackage{amsmath, amssymb, amsxtra, amsfonts}
+\usepackage{epsfig, epsf, epic, graphicx}
+\usepackage{fancybox, lscape, subfigure}
+\usepackage{graphics}
+\usepackage{natbib}
+\usepackage{hyperref}
+\usepackage{comment}
+\usepackage{listings}
+\usepackage[svgnames]{xcolor}
+\usepackage[T1]{fontenc}
+
+\lstset{language=R,
+    basicstyle=\small\ttfamily,
+    stringstyle=\color{DarkGreen},
+    otherkeywords={0,1,2,3,4,5,6,7,8,9},
+    morekeywords={TRUE,FALSE},
+    deletekeywords={data,frame,length,as,character},
+    keywordstyle=\color{blue},
+    commentstyle=\color{DarkGreen},
+}
+
+% New commands defined --------
+\newcommand{\newsec}[1]{\begin{center}
+    \dotfill \textit{#1} \dotfill
+\end{center}}
+
+\newcommand{\bb}{\boldsymbol \beta}
+\newcommand{\ba}{\boldsymbol \alpha}
+
+
+\begin{document}
+\maketitle
+\vspace{-0.2in}
+\noindent \textbf{\large Supplementary Material A: Real CAV MCMC results}\\
+
+\noindent \textbf{\large Supplementary Material B: Simulated CAV MCMC results}\\
+
+\noindent \textbf{\large Supplementary Material C: Real ECOG MCMC results}\\
+
+\noindent \textbf{\large Supplementary Material D: Credible/Confidence sets for real CAV and ECOG analyses}\\
+
+\noindent \textbf{\large Supplementary Material E: Posterior mean/MLE violin plots for simulated CAV analysis}\\
+
+\noindent \textbf{\large Supplementary Material F: Aalen-Johansen, Nelson-Aalen, and \texttt{prodint} applications}
+\vspace{0.5in}
+
+
+\noindent \textbf{\LARGE Supplementary Material A: Real CAV MCMC results}\\
+\subsection*{Continuous treatment of time}
+\begin{center}
+    \includegraphics[width=0.49\textwidth,page=1]{Supplement/real_cav/mcmc_deSolve.pdf}
+    \includegraphics[width=0.49\textwidth,page=2]{Supplement/real_cav/mcmc_deSolve.pdf}
+\end{center}
+\begin{center}
+    \includegraphics[width=0.49\textwidth,page=3]{Supplement/real_cav/mcmc_deSolve.pdf}
+    \includegraphics[width=0.49\textwidth,page=4]{Supplement/real_cav/mcmc_deSolve.pdf}
+    \includegraphics[width=0.49\textwidth,page=5]{Supplement/real_cav/mcmc_deSolve.pdf}
+    \includegraphics[width=0.49\textwidth,page=6]{Supplement/real_cav/mcmc_deSolve.pdf}
+\end{center}
+
+\subsection*{Bi-monthly discretization of time}
+\begin{center}
+    \includegraphics[width=0.49\textwidth,page=1]{Supplement/real_cav/mcmc_Month.pdf}
+    \includegraphics[width=0.49\textwidth,page=2]{Supplement/real_cav/mcmc_Month.pdf}
+    \includegraphics[width=0.49\textwidth,page=3]{Supplement/real_cav/mcmc_Month.pdf}
+    \includegraphics[width=0.49\textwidth,page=4]{Supplement/real_cav/mcmc_Month.pdf}
+\end{center}
+\begin{center}
+    \includegraphics[width=0.49\textwidth,page=5]{Supplement/real_cav/mcmc_Month.pdf}
+    \includegraphics[width=0.49\textwidth,page=6]{Supplement/real_cav/mcmc_Month.pdf}
+\end{center}
+
+\subsection*{Yearly discretization of time}
+\begin{center}
+    \includegraphics[width=0.49\textwidth,page=1]{Supplement/real_cav/mcmc_Year.pdf}
+    \includegraphics[width=0.49\textwidth,page=2]{Supplement/real_cav/mcmc_Year.pdf}
+\end{center}
+\begin{center}
+    \includegraphics[width=0.49\textwidth,page=3]{Supplement/real_cav/mcmc_Year.pdf}
+    \includegraphics[width=0.49\textwidth,page=4]{Supplement/real_cav/mcmc_Year.pdf}
+    \includegraphics[width=0.49\textwidth,page=5]{Supplement/real_cav/mcmc_Year.pdf}
+    \includegraphics[width=0.49\textwidth,page=6]{Supplement/real_cav/mcmc_Year.pdf}
+\end{center}
+
+\subsection*{Bi-yearly discretization of time}
+\begin{center}
+    \includegraphics[width=0.49\textwidth,page=1]{Supplement/real_cav/mcmc_YearTwo.pdf}
+    \includegraphics[width=0.49\textwidth,page=2]{Supplement/real_cav/mcmc_YearTwo.pdf}
+    \includegraphics[width=0.49\textwidth,page=3]{Supplement/real_cav/mcmc_YearTwo.pdf}
+    \includegraphics[width=0.49\textwidth,page=4]{Supplement/real_cav/mcmc_YearTwo.pdf}
+\end{center}
+\begin{center}
+    \includegraphics[width=0.49\textwidth,page=5]{Supplement/real_cav/mcmc_YearTwo.pdf}
+    \includegraphics[width=0.49\textwidth,page=6]{Supplement/real_cav/mcmc_YearTwo.pdf}
+\end{center}
+
+\end{document}
+
+

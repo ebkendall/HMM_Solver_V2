@@ -1,0 +1,80 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Supplementary Materials Organization}
+\date{\vspace{-5ex}}
+
+% Package includes --------------
+\usepackage[left=1.5cm, right=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{enumerate}
+\usepackage{mathrsfs}
+\usepackage{color}
+\def\cc{\color{blue}}
+\usepackage{physics}
+
+\usepackage{amsthm}
+\usepackage[normalem]{ulem}
+\usepackage[labelformat=empty]{caption}
+\usepackage{bm}
+\usepackage{arydshln} % allows dashed lines
+\usepackage{amsmath, amssymb, amsxtra, amsfonts}
+\usepackage{epsfig, epsf, epic, graphicx}
+\usepackage{fancybox, lscape, subfigure}
+\usepackage{graphics}
+\usepackage{natbib}
+\usepackage{hyperref}
+\usepackage{comment}
+\usepackage{listings}
+\usepackage[svgnames]{xcolor}
+\usepackage[T1]{fontenc}
+
+\lstset{language=R,
+    basicstyle=\small\ttfamily,
+    stringstyle=\color{DarkGreen},
+    otherkeywords={0,1,2,3,4,5,6,7,8,9},
+    morekeywords={TRUE,FALSE},
+    deletekeywords={data,frame,length,as,character},
+    keywordstyle=\color{blue},
+    commentstyle=\color{DarkGreen},
+}
+
+% New commands defined --------
+\newcommand{\newsec}[1]{\begin{center}
+    \dotfill \textit{#1} \dotfill
+\end{center}}
+
+\newcommand{\bb}{\boldsymbol \beta}
+\newcommand{\ba}{\boldsymbol \alpha}
+
+
+\begin{document}
+
+\noindent \textbf{\LARGE Supplementary Material D: Credible/Confidence sets for real CAV and ECOG analyses}\\
+NOTE: For each parameter (i.e. within the dotted vertical lines), the vertical intervals ordered left to right correspond to the ``Approach'' ordered top to bottom.
+\subsection*{CAV Analysis}
+\begin{center}
+    \includegraphics[width=\textwidth]{Supplement/cred_set_cav/baseline_cred_set.png}
+    \includegraphics[width=\textwidth]{Supplement/cred_set_cav/time_cred_set.png}
+    \includegraphics[width=\textwidth]{Supplement/cred_set_cav/sex_cred_set.png}
+    \includegraphics[width=\textwidth]{Supplement/cred_set_cav/misclass_cred_set.png}
+    \includegraphics[width=\textwidth]{Supplement/cred_set_cav/init_cred_set.png}
+\end{center}
+
+
+\subsection*{ECOG Analysis}
+\begin{center}
+    \includegraphics[width=\textwidth]{Supplement/cred_set_cav/baseline_cred_set_ecog.png}
+    \includegraphics[width=\textwidth]{Supplement/cred_set_cav/time_cred_set_ecog.png}
+    \includegraphics[width=\textwidth]{Supplement/cred_set_cav/misclass_cred_set_ecog.png}
+    \includegraphics[width=\textwidth]{Supplement/cred_set_cav/init_cred_set_ecog.png}
+    \includegraphics[width=\textwidth]{Supplement/cred_set_cav/delta_cred_set_ecog.png}
+    \includegraphics[width=\textwidth]{Supplement/cred_set_cav/theta_cred_set_ecog.png}
+    \includegraphics[width=\textwidth]{Supplement/cred_set_cav/alpha_cred_set_ecog.png}
+    \includegraphics[width=\textwidth]{Supplement/cred_set_cav/beta_cred_set_ecog.png}
+\end{center}
+
+\end{document}
+
+

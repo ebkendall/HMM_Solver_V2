@@ -1,0 +1,105 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Supplementary Materials Organization}
+\date{\vspace{-5ex}}
+
+% Package includes --------------
+\usepackage[left=1.5cm, right=2cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{enumerate}
+\usepackage{mathrsfs}
+\usepackage{color}
+\def\cc{\color{blue}}
+\usepackage{physics}
+
+\usepackage{amsthm}
+\usepackage[normalem]{ulem}
+\usepackage[labelformat=empty]{caption}
+\usepackage{bm}
+\usepackage{arydshln} % allows dashed lines
+\usepackage{amsmath, amssymb, amsxtra, amsfonts}
+\usepackage{epsfig, epsf, epic, graphicx}
+\usepackage{fancybox, lscape, subfigure}
+\usepackage{graphics}
+\usepackage{natbib}
+\usepackage{hyperref}
+\usepackage{comment}
+\usepackage{listings}
+\usepackage[svgnames]{xcolor}
+\usepackage[T1]{fontenc}
+
+\lstset{language=R,
+    basicstyle=\small\ttfamily,
+    stringstyle=\color{DarkGreen},
+    otherkeywords={0,1,2,3,4,5,6,7,8,9},
+    morekeywords={TRUE,FALSE},
+    deletekeywords={data,frame,length,as,character},
+    keywordstyle=\color{blue},
+    commentstyle=\color{DarkGreen},
+}
+
+% New commands defined --------
+\newcommand{\newsec}[1]{\begin{center}
+    \dotfill \textit{#1} \dotfill
+\end{center}}
+
+\newcommand{\bb}{\boldsymbol \beta}
+\newcommand{\ba}{\boldsymbol \alpha}
+
+
+\begin{document}
+
+\noindent \textbf{\LARGE Supplementary Material B: Simulated CAV MCMC results}\\
+\subsection*{Continuous treatment of time}
+\begin{center}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_deSolve1}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_deSolve2}
+\end{center}
+\begin{center}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_deSolve3}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_deSolve4}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_deSolve5}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_deSolve6}
+\end{center}
+
+\subsection*{Bi-monthly discretization of time}
+\begin{center}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_Month1}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_Month2}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_Month3}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_Month4}
+\end{center}
+\begin{center}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_Month5}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_Month6}
+\end{center}
+
+\subsection*{Yearly discretization of time}
+\begin{center}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_Year1}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_Year2}
+\end{center}
+\begin{center}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_Year3}
+        \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_Year4}
+            \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_Year5}
+                \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_Year6}
+\end{center}
+
+\subsection*{Bi-yearly discretization of time}
+\begin{center}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_YearTwo1}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_YearTwo2}
+        \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_YearTwo3}
+            \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_YearTwo4}
+\end{center}
+\begin{center}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_YearTwo5}
+    \includegraphics[width=0.49\textwidth]{Supplement/Sim/mcmc_YearTwo6}
+\end{center}
+
+\end{document}
+
+
