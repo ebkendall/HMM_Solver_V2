@@ -14,6 +14,8 @@ library(latex2exp, quietly = T)
 library(tidyverse, quietly = T)
 library(gridExtra, quietly = T)
 
+# "/Users/ebkendal/Desktop/Research/NCSU/2021/HMM_solver_JASA/Time_Capsuled_code_HMM_data"
+
 # Construct the transition rate matrix
 Q <- function(t,x_ik,beta){
 
@@ -205,14 +207,13 @@ plot_df = data.frame(yVar = prodint_time, xVar = step_div)
 time_plot = ggplot(plot_df, aes(x=xVar, y = yVar)) +
     geom_line()+
     geom_point() +
-    labs(title = TeX(r'(Computation time as a function of step-size)'),
-         subtitle = TeX(r'(Step size between time points $t_1$ and $t_2$ = $\frac{t_1 + t_2}{s}$)')) +
+    labs(title = TeX(r'(Computation time using prodint)')) +
     ylab(TeX(r'(computation time (sec.) )')) + 
-    xlab(TeX(r'($s$)')) +
-    geom_hline(yintercept=deSolve_time, linetype="dashed", color = "red", size=1.5) +
+    xlab(TeX(r'($s$, number of subintervals)')) +
+    geom_hline(yintercept=deSolve_time, linetype="dashed", color = "red", linewidth=1.5) +
     theme(text = element_text(size = 30), legend.position = "none", 
           panel.background = element_rect(fill = "white", colour = "grey", 
-                                          linetype = 'solid', size = 1),
+                                          linetype = 'solid', linewidth = 1),
           panel.grid.major = element_line(linetype = 'solid',
                                           colour = "grey") )
 
@@ -226,13 +227,12 @@ plot_df = data.frame(yVar = diff_like, xVar = step_div)
 like_plot = ggplot(plot_df, aes(x=xVar, y = yVar)) +
     geom_line()+
     geom_point() +
-    labs(title = TeX(r'(Squared difference in likelihood between deSolve and prodint as a function of step-size)'),
-         subtitle = TeX(r'(Step size between time points $t_1$ and $t_2$ = $\frac{t_1 + t_2}{s}$)')) +
+    labs(title = TeX(r'(Squared difference in likelihood between using deSolve and prodint)')) +
     ylab(TeX(r'(squared likelihood diff.)')) + 
-    xlab(TeX(r'($s$)')) +
+    xlab(TeX(r'($s$, number of subintervals)')) +
     theme(text = element_text(size = 30), legend.position = "none", 
           panel.background = element_rect(fill = "white", colour = "grey", 
-                                          linetype = 'solid', size = 1),
+                                          linetype = 'solid', linewidth = 1),
           panel.grid.major = element_line(linetype = 'solid',
                                           colour = "grey"))
 png("visualizations/Plots/prodint_like.png", width = 1600, height = 700)

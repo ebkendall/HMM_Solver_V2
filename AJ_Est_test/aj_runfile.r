@@ -20,6 +20,7 @@ for(it in 1:100) {
     # Format the simulated data into the form for AalenJohansen
     if(exact_time) {
         load(paste0('DataOut/exactTime/cavData', it, '.rda'))
+        cavData = cavData[cavData$ptnum %in% c(1:1000), ]
     } else {
         load(paste0('DataOut/interTime/cavData', it, '.rda'))
     }

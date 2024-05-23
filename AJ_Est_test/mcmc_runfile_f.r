@@ -22,6 +22,7 @@ prior_par = data.frame( prior_mean=rep( 0, length(init_par)),
 
 if(exact_time) {
     load(paste0('DataOut/exactTime/cavData', it, '.rda'))
+    cavData = cavData[cavData$ptnum %in% c(1:1000), ]
 } else {
     load(paste0('DataOut/interTime/cavData', it, '.rda'))
 }
@@ -32,15 +33,15 @@ y = temp_data[,"state"]
 x = temp_data[, c("disc_time", "sex"), drop=F]
 t = temp_data[,"years"]
 steps = 5000
-burnin = 500
+burnin = 2000
 n_cores = 16
 
 # # Center & Scale Time
 # mean_time = mean(t)
 # sd_time = sd(t)
 # t = (t - mean_time) / sd_time
-# init_par[1:5] = init_par[1:5] - (mean_time/sd_time) * init_par[6:10]
-# init_par[6:10] = init_par[6:10] / sd_time
+# init_par[1:5] = init_par[1:5] + (mean_time/sd_time) * init_par[6:10]
+# init_par[6:10] = init_par[6:10] * sd_time
 
 s_time = Sys.time()
 

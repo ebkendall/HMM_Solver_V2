@@ -67,10 +67,10 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, exact_time) {
         x_i = x[id == i,"sex",drop = F] # only the sex covariate
         t_i = t[id == i]                # continuous time
         
-        # val = 1
         # f_i = init %*% diag(resp_fnc[, y_i[1]])
-        # log_norm = 0
         f_i = init[y_i[1]]
+        # val = 1
+        # log_norm = 0
 
         for(k in 2:length(t_i)) {
 
@@ -88,28 +88,43 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, exact_time) {
                     # Transition occurred and we have the exact transition time
                     # val = f_i %*% P %*% Q(t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
                     q_curr = Q(t_i[k], x_i[k,], beta)
-                    f_i = f_i * P[y_i[k-1], y_i[k]] * q_curr[y_i[k-1], y_i[k]]
+                    val = f_i * P[y_i[k-1], y_i[k]] * q_curr[y_i[k-1], y_i[k]]
                 } else {
                     # val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
-                    f_i = f_i * P[y_i[k-1], y_i[k]]
+                    val = f_i * P[y_i[k-1], y_i[k]]
                 }
             } else { 
                 # Checking if death (state = 4) has occurred
                 if(y_i[k] != 4) {
                     # val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
-                    f_i = f_i * P[y_i[k-1], y_i[k]]
+                    val = f_i * P[y_i[k-1], y_i[k]]
                 } else {
                     # val = f_i %*% P %*% Q(t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
                     q_curr = Q(t_i[k], x_i[k,], beta)
-                    f_i = f_i * P[y_i[k-1], y_i[k]] * q_curr[y_i[k-1], y_i[k]]
+                    val = f_i * P[y_i[k-1], y_i[k]] * q_curr[y_i[k-1], y_i[k]]
                 }
             }
+            
+            if(!is.finite(log(val))) {
+                print(q_curr)
+                print(P)
+                print(paste0(y_i[k-1], ' -> ', y_i[k]))
+                print(f_i)
+                print(val)
+                print(t_i[(k-1):k])
+                print(pars)
+                break
+            }
+            
+            f_i = val
 
             # norm_val = sqrt(sum(val^2))
+            # norm_val = abs(val)
             # f_i = val / norm_val
             # log_norm = log_norm + log(norm_val)
         }
 
+        # return(log(f_i) + log_norm)
         # return(log(sum(f_i)) + log_norm)
         return(log(f_i))
     }
@@ -136,9 +151,15 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
   n_par = length(pars)
   chain = matrix( 0, steps, n_par)
 
-  group = list(c(par_index$beta[1:5]), 
+  group = list(c(par_index$beta[1:5]),
                c(par_index$beta[6:10]),
                c(par_index$beta[11:15]))
+#   group = list(c(par_index$beta[c(1,6,11)]), 
+#                c(par_index$beta[c(2,7,12)]),
+#                c(par_index$beta[c(3,8,13)]),
+#                c(par_index$beta[c(4,9,14)]), 
+#                c(par_index$beta[c(5,10,15)]))
+  # group = list(c(par_index$beta))
   n_group = length(group)
 
   pcov = list();	for(j in 1:n_group)  pcov[[j]] = diag(length(group[[j]]))
@@ -156,11 +177,6 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
   # Begin the MCMC algorithm --------------------------------------------------
   chain[1,] = pars
   for(ttt in 2:steps){
-      
-    if(ttt %% 100 == 0) {
-        print(matrix(pars[par_index$beta], ncol = 3))
-        print(accept)
-    }
 
     for(j in 1:n_group){
 
@@ -168,6 +184,15 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
         ind_j = group[[j]]
         proposal = pars
         proposal[ind_j] = rmvnorm( n=1, mean=pars[ind_j],sigma=pcov[[j]]*pscale[j])
+        
+        # print("curr")
+        # print(round(pars, digits = 5))
+        # print("prop")
+        # print(round(proposal, digits = 5))
+        # print("pscale")
+        # print(pscale)
+        # print("pcov")
+        # print(diag(pcov[[1]]))
 
         # Compute the log density for the proposal
         log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id, exact_time)
@@ -226,6 +251,14 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
         }
         # -----------------------------------------------------------------------
     }
+      
+      if(ttt %% 100 == 0) {
+          print(matrix(pars[par_index$beta], ncol = 3))
+          print(accept)
+          print(pscale)
+          print(pcov)
+      }
+      
     # Restart the acceptance ratio at burnin.
     if(ttt == burnin)  accept = rep( 0, n_group)
 
