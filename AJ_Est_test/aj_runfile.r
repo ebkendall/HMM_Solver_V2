@@ -6,13 +6,14 @@ exact_time = as.logical(as.numeric(args[1]))
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
-trueValues= c(-2.31617310,  -1.28756312,  -1.10116400,  -2.52367543,  -2.10384797,
-               0.27050001, -11.65470594,  -0.49306415,   0.28862090,   0.22731278,
-              -0.39079609,  -0.05894252,  -0.32509646,   0.48631653,   0.99565810)
+load('mcmc_out_10.rda')
+chain = mcmc_out$chain[10000:25001, ]
+ind_keep = seq(1, nrow(chain), by=10)
+chain = chain[ind_keep, ]
+trueValues = colMeans(chain)
+trueValues[6:10] = 3 * trueValues[6:10]
 
 beta <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
-
-initProbs = c(1,0,0,0)
 
 for(it in 1:100) {
     print(it)
@@ -20,7 +21,6 @@ for(it in 1:100) {
     # Format the simulated data into the form for AalenJohansen
     if(exact_time) {
         load(paste0('DataOut/exactTime/cavData', it, '.rda'))
-        cavData = cavData[cavData$ptnum %in% c(1:1000), ]
     } else {
         load(paste0('DataOut/interTime/cavData', it, '.rda'))
     }
