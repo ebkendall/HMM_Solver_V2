@@ -184,12 +184,17 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
             
             # Only propose valid parameters during the burnin period
             if(ttt < burnin){
+                prop_count = 0
                 while(!is.finite(log_post)){
                     print('bad proposal')
                     proposal = pars
                     proposal[ind_j] = rmvnorm( n=1, mean=pars[ind_j],
-                                               sigma=pcov[[j]]*pscale[j])
+                                            sigma=pcov[[j]]*pscale[j])
                     log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id, disc, exact_time)
+
+                    prop_count = prop_count + 1
+
+                    if(prop_count > 20) { break }
                 }
             }
             

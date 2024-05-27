@@ -4,26 +4,35 @@ exact_time = as.logical(as.numeric(args[1]))
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
 par_est_mat_split = matrix(nrow = 100, ncol = 15)
-par_est_mat       = matrix(nrow = 50, ncol = 15)
+par_est_mat       = matrix(nrow = 100, ncol = 15)
 
-# # Load the MCMC results
-# chain_list <- NULL
-# index_post = 1001:5000
-# 
-# for(i in 1:nrow(par_est_mat)) {
-#     if(exact_time) {
-#         load(paste0('Model_out/exactTime/mcmc_out_', i, '.rda'))    
-#     } else {
-#         load(paste0('Model_out/interTime/mcmc_out_', i, '.rda'))
-#     }
-#     
-#     chain_list[[i]] = mcmc_out$chain
-#     
-#     par_est_mat[i,] = colMeans(mcmc_out$chain[,par_index$beta])
-# }
-# 
-# stacked_chains = do.call( rbind, chain_list)
-# 
+# Load the MCMC results
+chain_list <- NULL
+index_post = 1:4501
+
+ind = 0
+for(i in 1:nrow(par_est_mat)) {
+    if(exact_time) {
+        file_name = paste0('Model_out/exactTime/mcmc_out_', i, '.rda')
+    } else {
+        file_name = paste0('Model_out/interTime/mcmc_out_', i, '.rda')
+    }
+
+    if(file.exists(file_name)) {
+        load(file_name)
+        mcmc_out$chain[, 1:5] = mcmc_out$chain[, 1:5] - mcmc_out$chain[, 6:10] * mcmc_out$mean_t
+
+        chain_list[[ind+1]] = mcmc_out$chain
+    
+        par_est_mat[ind+1,] = colMeans(mcmc_out$chain[,par_index$beta])
+        ind = ind + 1
+    }
+}
+
+par_est_mat = par_est_mat[1:ind, ]
+
+stacked_chains = do.call( rbind, chain_list)
+
 # Load the AJ results
 for(i in 1:nrow(par_est_mat_split)) {
     if(exact_time) {
@@ -74,8 +83,8 @@ pdf(pdf_title)
 VP <- vector(mode="list", length = length(labels))
 for(r in 1:length(labels)) {
     # Boxplots for par_est_mat
-    yVar = c(par_est_mat_split[,r])#, par_est_mat[,r])
-    disc_type = c(rep('AJ', nrow(par_est_mat_split)))#, rep('MCMC', nrow(par_est_mat)))
+    yVar = c(par_est_mat_split[,r], par_est_mat[,r])
+    disc_type = c(rep('AJ', nrow(par_est_mat_split)), rep('MCMC', nrow(par_est_mat)))
     x_label = paste0("Parameter Value: ", round(trueValues[r], 3))
     truth_par = trueValues[r]
     
@@ -94,32 +103,32 @@ grid.arrange(VP[[1]], VP[[2]], VP[[3]], VP[[4]], VP[[5]], ncol=2, nrow =3)
 grid.arrange(VP[[6]], VP[[7]], VP[[8]], VP[[9]], VP[[10]], ncol=2, nrow =3)
 grid.arrange(VP[[11]], VP[[12]], VP[[13]], VP[[14]], VP[[15]], ncol=2, nrow =3)
 
-# # Only thinning down the visualization. All means and medians are calculated
-# # using the entire stacked_chains matrix.
-# thin_ind = seq(1, length(index_post), by=10)
-# thin_ind_big = seq(1, nrow(stacked_chains), by=10)
-# par_mean = par_median = upper = lower = rep( NA, ncol(stacked_chains))
-# par(mfrow=c(4, 2))
-# for(r in 1:length(labels)){
-#     
-#     plot( NULL, xlab=NA, ylab=NA, main=labels[r], xlim=c(1,length(thin_ind)),
-#           ylim=range(stacked_chains[,r]) )
-#     
-#     for(seed in 1:length(chain_list)) lines( chain_list[[seed]][thin_ind,r], type='l', col=seed)
-#     
-#     par_mean[r] = round( mean(stacked_chains[,r]), 4)
-#     par_median[r] = round( median(stacked_chains[,r]), 4)
-#     upper[r] = round( quantile( stacked_chains[,r], prob=.975), 4)
-#     lower[r] = round( quantile( stacked_chains[,r], prob=.025), 4)
-#     
-#     print(paste(labels[r], ": [", lower[r], ", ", upper[r], "]"))
-#     
-#     hist( stacked_chains[thin_ind_big,r], breaks=sqrt(nrow(stacked_chains[thin_ind_big,])), ylab=NA, main=NA,
-#           freq=F, xlab=paste0('Mean = ',toString(par_mean[r]),
-#                               ' Median = ',toString(par_median[r])))
-#     abline( v=upper[r], col='red', lwd=2, lty=2)
-#     abline( v=trueValues[r], col='green', lwd=2, lty=2)
-#     abline( v=lower[r], col='purple', lwd=2, lty=2)
-# }
+# Only thinning down the visualization. All means and medians are calculated
+# using the entire stacked_chains matrix.
+thin_ind = seq(1, length(index_post), by=10)
+thin_ind_big = seq(1, nrow(stacked_chains), by=10)
+par_mean = par_median = upper = lower = rep( NA, ncol(stacked_chains))
+par(mfrow=c(4, 2))
+for(r in 1:length(labels)){
+    
+    plot( NULL, xlab=NA, ylab=NA, main=labels[r], xlim=c(1,length(thin_ind)),
+          ylim=range(stacked_chains[,r]) )
+    
+    for(seed in 1:length(chain_list)) lines( chain_list[[seed]][thin_ind,r], type='l', col=seed)
+    
+    par_mean[r] = round( mean(stacked_chains[,r]), 4)
+    par_median[r] = round( median(stacked_chains[,r]), 4)
+    upper[r] = round( quantile( stacked_chains[,r], prob=.975), 4)
+    lower[r] = round( quantile( stacked_chains[,r], prob=.025), 4)
+    
+    print(paste(labels[r], ": [", lower[r], ", ", upper[r], "]"))
+    
+    hist( stacked_chains[thin_ind_big,r], breaks=sqrt(nrow(stacked_chains[thin_ind_big,])), ylab=NA, main=NA,
+          freq=F, xlab=paste0('Mean = ',toString(par_mean[r]),
+                              ' Median = ',toString(par_median[r])))
+    abline( v=upper[r], col='red', lwd=2, lty=2)
+    abline( v=trueValues[r], col='green', lwd=2, lty=2)
+    abline( v=lower[r], col='purple', lwd=2, lty=2)
+}
 
 dev.off()

@@ -30,8 +30,8 @@ id = temp_data[,"ptnum"]
 y = temp_data[,"state"]
 x = temp_data[, c("disc_time", "sex"), drop=F]
 t = temp_data[,"years"]
-steps = 5000
-burnin = 500
+steps = 20000
+burnin = 5000
 n_cores = 16
 disc = F
 
