@@ -97,7 +97,7 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, disc, exact_tim
             
             if(exact_time) {
                 if(y_i[k-1] != y_i[k]) {
-                    val = f_i * P[y_i[k-1], y_i[k]] * Q(t_i[k], x_i[k,], beta)[y_i[k-1], y_i[k]]   
+                    val = f_i * P[y_i[k-1], y_i[k-1]] * Q(t_i[k], x_i[k,], beta)[y_i[k-1], y_i[k]]   
                 } else {
                     val = f_i * P[y_i[k-1], y_i[k]]
                 }

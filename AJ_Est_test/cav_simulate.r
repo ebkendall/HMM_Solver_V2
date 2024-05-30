@@ -40,11 +40,9 @@ censor_times <- function(t, p) {
 
 library(msm)
 
-# args = commandArgs(TRUE)
-# num_iter = as.numeric(args[1]) 
-# exact_time = as.logical(as.numeric(args[2]))
-num_iter = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
-exact_time = T
+args = commandArgs(TRUE)
+num_iter = as.numeric(args[1]) 
+exact_time = as.logical(as.numeric(args[2]))
 
 set.seed(num_iter)
 print(num_iter)
@@ -54,8 +52,6 @@ print(num_iter)
 # p = 3 --> update every year
 # p = 4 --> update every other year
 
-folder_name = c("Continuous", "Month", "Year", "YearTwo")
-
 # Set the sample size.  Note that the true cav data set has 622 subjects.
 N <- 2000
 # Choose the discretization of time.
@@ -63,7 +59,7 @@ dt <- 1/1000
 
 # The true values are set as the posterior means of the thinned last 15,000 steps
 # from running the MCMC routine using the numerical ODE solution (seed 10).
-load('mcmc_out_10.rda')
+load('real_cav_analysis/Model_out/deSolve/mcmc_out_10.rda')
 chain = mcmc_out$chain[10000:25001, ]
 ind_keep = seq(1, nrow(chain), by=10)
 chain = chain[ind_keep, ]
@@ -196,7 +192,7 @@ for(i in 1:N){
             state = state[-length(state)]
         }
         
-        if(sum(abs(diff(visitTimes)) > 6) > 0) {
+        if(sum(abs(diff(visitTimes)) > 7) > 0) {
             new_vt = visitTimes[1]
             new_s  = state[1]
             diff_t = abs(diff(visitTimes))
@@ -261,14 +257,6 @@ N <- length(unique(rawData$ptnum))
 propDeaths_sim <- propDeaths_sim / N
 
 
-# NO NOISE IN OBSERVED STATES
-# for(i in 1:nrow(rawData)){	rawData$state[i] <- sample(1:4, size=1, prob=errorMat[rawData$state[i],])  }
-
-#----------------------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------------------
-# Add censored rows.
-#----------------------------------------------------------------------------------------------------------------
-#----------------------------------------------------------------------------------------------------------------
 # Key
 # p = 1: continuous (no censor)
 # p = 2: once every two months censor
@@ -295,9 +283,9 @@ rownames(cavData) <- NULL
 
 
 if(exact_time) {
-    save(cavData, file=paste("DataOut/exactTime/cavData", num_iter, ".rda", sep=''))
+    save(cavData, file=paste("supplement_code/DataOut/exactTime/cavData", num_iter, ".rda", sep=''))
 } else {
-    save(cavData, file=paste("DataOut/interTime/cavData", num_iter, ".rda", sep=''))
+    save(cavData, file=paste("supplement_code/DataOut/interTime/cavData", num_iter, ".rda", sep=''))
 }
 
 obs_trans <- function(df) {

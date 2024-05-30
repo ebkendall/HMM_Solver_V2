@@ -14,8 +14,6 @@ library(latex2exp, quietly = T)
 library(tidyverse, quietly = T)
 library(gridExtra, quietly = T)
 
-# "/Users/ebkendal/Desktop/Research/NCSU/2021/HMM_solver_JASA/Time_Capsuled_code_HMM_data"
-
 # Construct the transition rate matrix
 Q <- function(t,x_ik,beta){
 
