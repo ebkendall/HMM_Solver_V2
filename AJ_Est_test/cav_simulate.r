@@ -174,15 +174,6 @@ for(i in 1:N){
         min_waitTime <- min(waitTimes)
         if(min_waitTime < dt){  s <- moveToStates[ which(waitTimes == min_waitTime) ]  }
         
-        # if(tail(trueState,1) != s) {
-        #     years <- c( years, time1 + min_waitTime)
-        # 
-        # } else {
-        #     years <- c( years, time1 + dt)
-        # }
-        # 
-        # time1 <- time1 + dt
-        
         time1 <- time1 + dt
         years <- c( years, time1)
         
@@ -200,31 +191,6 @@ for(i in 1:N){
         
         visitTimes = c(0, transition_times)
         state = c(trueState[1], transition_times_state)
-        
-        # if( timeOfDeath >= 20 ){
-        #     print('removing state 4')
-        #     print(rbind(visitTimes, state))
-        #     visitTimes = visitTimes[-length(visitTimes)]
-        #     state = state[-length(state)]
-        # }
-        # 
-        # if(sum(abs(diff(visitTimes)) > 7) > 0) {
-        #     new_vt = visitTimes[1]
-        #     new_s  = state[1]
-        #     diff_t = abs(diff(visitTimes))
-        #     for(ttt in 2:length(visitTimes)) {
-        #         if(diff_t[ttt-1] > 7) {
-        #             new_vt = c(new_vt, c(mean(visitTimes[c(ttt-1, ttt)]), visitTimes[ttt]))
-        #             new_s = c(new_s, c(state[ttt-1], state[ttt]))
-        #         } else {
-        #             new_vt = c(new_vt, visitTimes[ttt])
-        #             new_s = c(new_s, state[ttt])
-        #         }
-        #     }
-        #     
-        #     visitTimes = new_vt
-        #     state = new_s
-        # }
         
         n_i = length(visitTimes)
         

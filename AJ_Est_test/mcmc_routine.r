@@ -73,11 +73,6 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, disc, exact_tim
         # If time is discretized for matrix exponential (disc = TRUE)
         if(disc) { disc_t_i = x[id == i,"disc_time",drop = F] }
         
-        # if(exact_time) {
-        #     f_i = init[y_i[1]]
-        # } else {
-        #     f_i = init %*% diag(resp_fnc[, y_i[1]])
-        # }
         f_i = init %*% diag(resp_fnc[, y_i[1]])
         
         log_norm = 0
@@ -156,9 +151,6 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
     n_par = length(pars)
     chain = matrix( 0, steps, n_par)
     
-    # group = list(c(par_index$beta[1:5]),
-    #              c(par_index$beta[6:10]),
-    #              c(par_index$beta[11:15]))
     group = list(c(par_index$beta))
     n_group = length(group)
     

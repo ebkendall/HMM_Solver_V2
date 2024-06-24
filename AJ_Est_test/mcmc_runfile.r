@@ -1,14 +1,18 @@
-source("supplement_code/mcmc_routine.r")
+# source("supplement_code/mcmc_routine.r")
+source("mcmc_routine.r")
 
-args = commandArgs(TRUE)
-ind = as.numeric(args[1])
-exact_time = as.logical(as.numeric(args[2]))
+# args = commandArgs(TRUE)
+# ind = as.numeric(args[1])
+# exact_time = as.logical(as.numeric(args[2]))
+ind = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+exact_time = T
 
 set.seed(ind)
 print(ind)
 
 # We will start the MCMC at the true values 
-load('real_cav_analysis/Model_out/deSolve/mcmc_out_10.rda')
+# load('real_cav_analysis/Model_out/deSolve/mcmc_out_10.rda')
+load('mcmc_out_10.rda')
 chain = mcmc_out$chain[10000:25001, ]
 ind_keep = seq(1, nrow(chain), by=10)
 chain = chain[ind_keep, ]
@@ -20,9 +24,11 @@ init_par[8] = init_par[6]
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
 if(exact_time) {
-    load(paste0('supplement_code/DataOut/exactTime/cavData', ind, '.rda'))
+    # load(paste0('supplement_code/DataOut/exactTime/cavData', ind, '.rda'))
+    load(paste0('DataOut/exactTime/cavData', ind, '.rda'))
 } else {
-    load(paste0('supplement_code/DataOut/interTime/cavData', ind, '.rda'))
+    # load(paste0('supplement_code/DataOut/interTime/cavData', ind, '.rda'))
+    load(paste0('DataOut/interTime/cavData', ind, '.rda'))
 }
 
 temp_data = as.matrix(cavData); rownames(temp_data) = NULL
@@ -55,7 +61,9 @@ mcmc_out$mean_t = mean_t
 e_time = Sys.time() - s_time; print(e_time)
 
 if(exact_time) {
-    save(mcmc_out, file = paste0("supplement_code/Model_out/exactTime/mcmc_out_", ind, ".rda"))
+    # save(mcmc_out, file = paste0("supplement_code/Model_out/exactTime/mcmc_out_", ind, ".rda"))
+    save(mcmc_out, file = paste0("Model_out/exactTime/mcmc_out_", ind, ".rda"))
 } else {
-    save(mcmc_out, file = paste0("supplement_code/Model_out/interTime/mcmc_out_", ind, ".rda"))
+    # save(mcmc_out, file = paste0("supplement_code/Model_out/interTime/mcmc_out_", ind, ".rda"))
+    save(mcmc_out, file = paste0("Model_out/interTime/mcmc_out_", ind, ".rda"))
 }
