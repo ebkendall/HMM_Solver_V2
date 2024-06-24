@@ -40,9 +40,11 @@ censor_times <- function(t, p) {
 
 library(msm)
 
-args = commandArgs(TRUE)
-num_iter = as.numeric(args[1]) 
-exact_time = as.logical(as.numeric(args[2]))
+# args = commandArgs(TRUE)
+# num_iter = as.numeric(args[1]) 
+# exact_time = as.logical(as.numeric(args[2]))
+num_iter = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
+exact_time = T
 
 set.seed(num_iter)
 print(num_iter)
@@ -53,13 +55,14 @@ print(num_iter)
 # p = 4 --> update every other year
 
 # Set the sample size.  Note that the true cav data set has 622 subjects.
-N <- 2000
+N <- 3000
 # Choose the discretization of time.
-dt <- 1/1000
+dt <- 1/365
 
 # The true values are set as the posterior means of the thinned last 15,000 steps
 # from running the MCMC routine using the numerical ODE solution (seed 10).
-load('real_cav_analysis/Model_out/deSolve/mcmc_out_10.rda')
+# load('real_cav_analysis/Model_out/deSolve/mcmc_out_10.rda')
+load('mcmc_out_10.rda')
 chain = mcmc_out$chain[10000:25001, ]
 ind_keep = seq(1, nrow(chain), by=10)
 chain = chain[ind_keep, ]
@@ -69,6 +72,8 @@ trueValues = colMeans(chain)
 # 3 in order to magnify the effect of the different approaches to modelling 
 # continuous time HMMs.
 trueValues[6:10] = 3 * trueValues[6:10]
+trueValues[7] = trueValues[8]
+trueValues[8] = trueValues[6]
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
 betaMat <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
@@ -169,9 +174,18 @@ for(i in 1:N){
         min_waitTime <- min(waitTimes)
         if(min_waitTime < dt){  s <- moveToStates[ which(waitTimes == min_waitTime) ]  }
         
-        time1 <- time1 + dt
+        # if(tail(trueState,1) != s) {
+        #     years <- c( years, time1 + min_waitTime)
+        # 
+        # } else {
+        #     years <- c( years, time1 + dt)
+        # }
+        # 
+        # time1 <- time1 + dt
         
+        time1 <- time1 + dt
         years <- c( years, time1)
+        
         trueState <- c( trueState, s)
     }
     timeOfDeath <- tail(years,1)
@@ -187,28 +201,30 @@ for(i in 1:N){
         visitTimes = c(0, transition_times)
         state = c(trueState[1], transition_times_state)
         
-        if( timeOfDeath >= 20 ){  
-            visitTimes = visitTimes[-length(visitTimes)]
-            state = state[-length(state)]
-        }
-        
-        if(sum(abs(diff(visitTimes)) > 7) > 0) {
-            new_vt = visitTimes[1]
-            new_s  = state[1]
-            diff_t = abs(diff(visitTimes))
-            for(ttt in 2:length(visitTimes)) {
-                if(diff_t[ttt-1] > 7) {
-                    new_vt = c(new_vt, c(mean(visitTimes[c(ttt-1, ttt)]), visitTimes[ttt]))
-                    new_s = c(new_s, c(state[ttt-1], state[ttt]))
-                } else {
-                    new_vt = c(new_vt, visitTimes[ttt])
-                    new_s = c(new_s, state[ttt])
-                }
-            }
-            
-            visitTimes = new_vt
-            state = new_s
-        }
+        # if( timeOfDeath >= 20 ){
+        #     print('removing state 4')
+        #     print(rbind(visitTimes, state))
+        #     visitTimes = visitTimes[-length(visitTimes)]
+        #     state = state[-length(state)]
+        # }
+        # 
+        # if(sum(abs(diff(visitTimes)) > 7) > 0) {
+        #     new_vt = visitTimes[1]
+        #     new_s  = state[1]
+        #     diff_t = abs(diff(visitTimes))
+        #     for(ttt in 2:length(visitTimes)) {
+        #         if(diff_t[ttt-1] > 7) {
+        #             new_vt = c(new_vt, c(mean(visitTimes[c(ttt-1, ttt)]), visitTimes[ttt]))
+        #             new_s = c(new_s, c(state[ttt-1], state[ttt]))
+        #         } else {
+        #             new_vt = c(new_vt, visitTimes[ttt])
+        #             new_s = c(new_s, state[ttt])
+        #         }
+        #     }
+        #     
+        #     visitTimes = new_vt
+        #     state = new_s
+        # }
         
         n_i = length(visitTimes)
         
@@ -283,9 +299,11 @@ rownames(cavData) <- NULL
 
 
 if(exact_time) {
-    save(cavData, file=paste("supplement_code/DataOut/exactTime/cavData", num_iter, ".rda", sep=''))
+    # save(cavData, file=paste("supplement_code/DataOut/exactTime/cavData", num_iter, ".rda", sep=''))
+    save(cavData, file=paste("DataOut/exactTime/cavData", num_iter, ".rda", sep=''))
 } else {
-    save(cavData, file=paste("supplement_code/DataOut/interTime/cavData", num_iter, ".rda", sep=''))
+    # save(cavData, file=paste("supplement_code/DataOut/interTime/cavData", num_iter, ".rda", sep=''))
+    save(cavData, file=paste("DataOut/interTime/cavData", num_iter, ".rda", sep=''))
 }
 
 obs_trans <- function(df) {

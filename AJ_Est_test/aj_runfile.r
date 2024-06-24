@@ -6,12 +6,15 @@ exact_time = as.logical(as.numeric(args[1]))
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
-load('real_cav_analysis/Model_out/deSolve/mcmc_out_10.rda')
+# load('real_cav_analysis/Model_out/deSolve/mcmc_out_10.rda')
+load('mcmc_out_10.rda')
 chain = mcmc_out$chain[10000:25001, ]
 ind_keep = seq(1, nrow(chain), by=10)
 chain = chain[ind_keep, ]
 trueValues = colMeans(chain)
 trueValues[6:10] = 3 * trueValues[6:10]
+trueValues[7] = trueValues[8]
+trueValues[8] = trueValues[6]
 
 beta <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 
@@ -20,9 +23,9 @@ for(it in 1:100) {
 
     # Format the simulated data into the form for AalenJohansen
     if(exact_time) {
-        load(paste0('supplement_code/DataOut/exactTime/cavData', it, '.rda'))
+        load(paste0('DataOut/exactTime/cavData', it, '.rda'))
     } else {
-        load(paste0('supplement_code/DataOut/interTime/cavData', it, '.rda'))
+        load(paste0('DataOut/interTime/cavData', it, '.rda'))
     }
     
     eid = unique(cavData$ptnum)
@@ -105,8 +108,8 @@ for(it in 1:100) {
     par_est_list = list(c(optim_coeff_split))
     
     if(exact_time) {
-        save(par_est_list, file = paste0('supplement_code/Model_out/exactTime/par_est_list_', it, '.rda'))
+        save(par_est_list, file = paste0('Model_out/exactTime/par_est_list_', it, '.rda'))
     } else {
-        save(par_est_list, file = paste0('supplement_code/Model_out/interTime/par_est_list_', it, '.rda'))
+        save(par_est_list, file = paste0('Model_out/interTime/par_est_list_', it, '.rda'))
     }   
 }

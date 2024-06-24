@@ -13,9 +13,9 @@ index_post = 5000:15001
 ind = 0
 for(i in 1:nrow(par_est_mat)) {
     if(exact_time) {
-        file_name = paste0('supplement_code/Model_out/exactTime/mcmc_out_', i, '.rda')
+        file_name = paste0('Model_out/exactTime/mcmc_out_', i, '.rda')
     } else {
-        file_name = paste0('supplement_code/Model_out/interTime/mcmc_out_', i, '.rda')
+        file_name = paste0('Model_out/interTime/mcmc_out_', i, '.rda')
     }
 
     if(file.exists(file_name)) {
@@ -36,9 +36,9 @@ stacked_chains = do.call( rbind, chain_list)
 # Load the AJ results
 for(i in 1:nrow(par_est_mat_split)) {
     if(exact_time) {
-        load(paste0('supplement_code/Model_out/exactTime/par_est_list_', i, '.rda'))
+        load(paste0('Model_out/exactTime/par_est_list_', i, '.rda'))
     } else {
-        load(paste0('supplement_code/Model_out/interTime/par_est_list_', i, '.rda'))
+        load(paste0('Model_out/interTime/par_est_list_', i, '.rda'))
     }
 
     par_est_mat_split[i,] = c(par_est_list[[1]])
@@ -60,12 +60,14 @@ labels <- c('baseline S1 (well)   --->   S2 (mild)',
             'sex S2 (mild)   --->   S4 (dead)',
             'sex S3 (severe)   --->   S4 (dead)')
 
-load('real_cav_analysis/Model_out/deSolve/mcmc_out_10.rda')
+load('mcmc_out_10.rda')
 chain = mcmc_out$chain[10000:25001, ]
 ind_keep = seq(1, nrow(chain), by=10)
 chain = chain[ind_keep, ]
 trueValues = colMeans(chain)
 trueValues[6:10] = 3 * trueValues[6:10]
+trueValues[7] = trueValues[8]
+trueValues[8] = trueValues[6]
 
 # Plot and save the mcmc trace plots and histograms.
 library(tidyverse)
@@ -74,17 +76,17 @@ library(latex2exp)
 
 pdf_title = NULL
 if(exact_time) {
-    pdf_title = 'supplement_code/Plots/par_est_optim_exact.pdf'
+    pdf_title = 'Plots/par_est_optim_exact.pdf'
 } else {
-    pdf_title = 'supplement_code/Plots/par_est_optim_inter.pdf'
+    pdf_title = 'Plots/par_est_optim_inter.pdf'
 }
 
 pdf(pdf_title)
 VP <- vector(mode="list", length = length(labels))
 for(r in 1:length(labels)) {
     # Boxplots for par_est_mat
-    yVar = c(par_est_mat_split[,r], par_est_mat[,r])
-    disc_type = c(rep('AJ', nrow(par_est_mat_split)), rep('MCMC', nrow(par_est_mat)))
+    yVar = c(par_est_mat_split[,r])#, par_est_mat[,r])
+    disc_type = c(rep('(E)', nrow(par_est_mat_split)))#, rep('(A)', nrow(par_est_mat)))
     x_label = paste0("Parameter Value: ", round(trueValues[r], 3))
     truth_par = trueValues[r]
     

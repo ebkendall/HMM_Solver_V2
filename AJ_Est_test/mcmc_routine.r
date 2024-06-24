@@ -73,11 +73,12 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, disc, exact_tim
         # If time is discretized for matrix exponential (disc = TRUE)
         if(disc) { disc_t_i = x[id == i,"disc_time",drop = F] }
         
-        if(exact_time) {
-            f_i = init[y_i[1]]
-        } else {
-            f_i = init %*% diag(resp_fnc[, y_i[1]])
-        }
+        # if(exact_time) {
+        #     f_i = init[y_i[1]]
+        # } else {
+        #     f_i = init %*% diag(resp_fnc[, y_i[1]])
+        # }
+        f_i = init %*% diag(resp_fnc[, y_i[1]])
         
         log_norm = 0
         
@@ -97,9 +98,13 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, disc, exact_tim
             
             if(exact_time) {
                 if(y_i[k-1] != y_i[k]) {
-                    val = f_i * P[y_i[k-1], y_i[k-1]] * Q(t_i[k], x_i[k,], beta)[y_i[k-1], y_i[k]]   
+                    q_temp = Q(t_i[k], x_i[k,], beta)
+                    diag(q_temp) = 0
+                    val = f_i %*% P %*% q_temp %*% diag(resp_fnc[, y_i[k]])
+                    # val = f_i * P[y_i[k-1], y_i[k-1]] * Q(t_i[k], x_i[k,], beta)[y_i[k-1], y_i[k]]   
                 } else {
-                    val = f_i * P[y_i[k-1], y_i[k]]
+                    # val = f_i * P[y_i[k-1], y_i[k]]
+                    val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
                 }
             } else {
                 # Checking if death (state = 4) has occurred

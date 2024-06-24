@@ -1,4 +1,4 @@
-source("mcmc_routine.r")
+source("supplement_code/mcmc_routine.r")
 
 args = commandArgs(TRUE)
 ind = as.numeric(args[1])
@@ -14,6 +14,8 @@ ind_keep = seq(1, nrow(chain), by=10)
 chain = chain[ind_keep, ]
 init_par = colMeans(chain)
 init_par[6:10] = 3 * init_par[6:10]
+init_par[7] = init_par[8]
+init_par[8] = init_par[6]
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
