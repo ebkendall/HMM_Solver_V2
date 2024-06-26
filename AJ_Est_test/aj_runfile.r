@@ -2,7 +2,11 @@ library(AalenJohansen)
 library(nhm)
 
 args = commandArgs(TRUE)
-exact_time = as.logical(as.numeric(args[1]))
+case_num = as.numeric(args[1])
+
+# case_num = 1 --> not exact transition time nor all transitions observed
+# case_num = 2 --> exact transition times
+# case_num = 3 --> exact transition times and all transitions observed
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
@@ -22,11 +26,7 @@ for(it in 1:100) {
     print(it)
 
     # Format the simulated data into the form for AalenJohansen
-    if(exact_time) {
-        load(paste0('DataOut/exactTime/cavData', it, '.rda'))
-    } else {
-        load(paste0('DataOut/interTime/cavData', it, '.rda'))
-    }
+    load(paste0("DataOut/cavData_case", case_num, "_it", it, ".rda"))
     
     eid = unique(cavData$ptnum)
     
@@ -107,9 +107,5 @@ for(it in 1:100) {
     
     par_est_list = list(c(optim_coeff_split))
     
-    if(exact_time) {
-        save(par_est_list, file = paste0('Model_out/exactTime/par_est_list_', it, '.rda'))
-    } else {
-        save(par_est_list, file = paste0('Model_out/interTime/par_est_list_', it, '.rda'))
-    }   
+    save(par_est_list, file = paste0('Model_out/par_est_list_case', case_num, "_it", it, '.rda'))
 }
