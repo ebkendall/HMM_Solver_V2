@@ -5,7 +5,7 @@ source("mcmc_routine.r")
 # ind = as.numeric(args[1])
 # case_num = as.numeric(args[2])
 ind = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
-case_num = 1
+case_num = 3
 
 # case_num = 1 --> not exact transition time nor all transitions observed
 # case_num = 2 --> exact transition times

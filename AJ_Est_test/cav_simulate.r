@@ -4,7 +4,7 @@ library(msm)
 # num_iter = as.numeric(args[1]) 
 # case_num = as.numeric(args[2])
 num_iter = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
-case_num = 1 # 1, 2 or 3
+case_num = 3 # 1, 2 or 3
 
 # case_num = 1 --> not exact transition time nor all transitions observed
 # case_num = 2 --> exact transition times
@@ -16,7 +16,7 @@ print(num_iter)
 # Set the sample size.  Note that the true cav data set has 622 subjects.
 N <- 3000
 # Choose the discretization of time.
-dt <- 1/500
+dt <- 1/365
 
 # The true values are set as the posterior means of the thinned last 15,000 steps
 # from running the MCMC routine using the numerical ODE solution (seed 10).
@@ -167,26 +167,45 @@ for(i in 1:N){
         }  
     } else if(case_num == 2) {
         
-        # Get the exact transition times ---------------------------------------
-        transition_times_pos = which(diff(trueState) != 0) + 1
-        transition_times = years[transition_times_pos]
-        transition_times_state = trueState[transition_times_pos]
-        
-        visitTimes = c(0, transition_times)
-        state = c(trueState[1], transition_times_state)
-        
-        # Determine if we observe *all* transitions ----------------------------
-        if(length(visitTimes) == 3) {
-            n_sub_sample = sample(x = 1:2, size = 1)
-            keep_ind = sort(sample(x = 2:3, size = n_sub_sample, replace = F))
-            visitTimes = c(visitTimes[1], visitTimes[keep_ind])
-            state = c(state[1], state[keep_ind])
-        } else if(length(visitTimes) == 4) {
-            n_sub_sample = sample(x = 1:3, size = 1)
-            keep_ind = sort(sample(x = 2:4, size = n_sub_sample, replace = F))
-            visitTimes = c(visitTimes[1], visitTimes[keep_ind])
-            state = c(state[1], state[keep_ind])
+        # Using a similar approach to case 1, we can use the inter-observation 
+        # times to define which transitions we observe.
+        visitTimes <- NULL
+        time2 <- 0
+        while(time2 < timeOfDeath){
+            visitTimes <- c( visitTimes, time2)
+            time2 <- time2 + sample( interObsTime, size=1)
         }
+        visitTimes <- c( visitTimes, timeOfDeath) 
+        n_i <- length(visitTimes)
+        state <- NULL
+        for(k in 1:n_i){  state <- c( state, tail( trueState[ years <= visitTimes[k] ], 1))  }
+        
+        # Get the exact transition times ---------------------------------------
+        # if length(unique(state)) == 2, then observe initial state & state 4
+        if(length(unique(state)) > 2) {
+            # Which state transitions do we observe?
+            obs_unique_states = unique(state)
+            
+            # What are the exact transition times?
+            transition_times_pos = which(diff(trueState) != 0) + 1
+            transition_times = c(0, years[transition_times_pos])
+            transition_times_state = c(trueState[1], trueState[transition_times_pos])
+            
+            # Exact transition times for the observed transitions
+            obs_exact_trans_times = transition_times[transition_times_state %in% obs_unique_states]
+            # First time point is always 0
+            for(jjj in 2:length(obs_unique_states)) {
+                trans_time_jjj = obs_exact_trans_times[jjj]
+                obs_state_min = min(which(state == obs_unique_states[jjj]))
+                
+                # Double check states match up
+                if(state[obs_state_min] != obs_unique_states[jjj]) stop("sim error mismatch")
+                
+                visitTimes[obs_state_min] = trans_time_jjj
+            }
+        }
+        
+        if(sum(diff(visitTimes) < 0) > 0) stop("something went wrong with visitTimes")
         
         n_i = length(visitTimes)
         ptnum <- rep(i,n_i)
