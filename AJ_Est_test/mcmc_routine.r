@@ -63,9 +63,8 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, disc, case_num)
     # Parallelized computation of the log-likelihood
     log_total_val = foreach(i=unique(id), .combine='+', 
                             .export = c("model_t", "Q"), 
-                            .packages = c("deSolve", "expm")) %do% {
+                            .packages = c("deSolve", "expm")) %dopar% {
                                 
-        print(i)
         val = 1; disc_t_i = NULL
         y_i = y[id == i]                # the observed state
         x_i = x[id == i,"sex",drop = F] # only the sex covariate

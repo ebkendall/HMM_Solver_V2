@@ -74,8 +74,8 @@ pdf(pdf_title)
 VP <- vector(mode="list", length = length(labels))
 for(r in 1:length(labels)) {
     # Boxplots for par_est_mat
-    yVar = c(par_est_mat_split[,r])#, par_est_mat[,r])
-    disc_type = c(rep('(E)', nrow(par_est_mat_split)))#, rep('(A)', nrow(par_est_mat)))
+    yVar = c(par_est_mat_split[,r], par_est_mat[,r])
+    disc_type = c(rep('(E)', nrow(par_est_mat_split)), rep('(A)', nrow(par_est_mat)))
     x_label = paste0("Parameter Value: ", round(trueValues[r], 3))
     truth_par = trueValues[r]
     

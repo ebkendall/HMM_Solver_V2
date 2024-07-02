@@ -4,7 +4,7 @@ library(msm)
 # num_iter = as.numeric(args[1]) 
 # case_num = as.numeric(args[2])
 num_iter = as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
-case_num = 3 # 1, 2 or 3
+case_num = 2 # 1, 2 or 3
 
 # case_num = 1 --> not exact transition time nor all transitions observed
 # case_num = 2 --> exact transition times
@@ -188,21 +188,28 @@ for(i in 1:N){
             
             # What are the exact transition times?
             transition_times_pos = which(diff(trueState) != 0) + 1
-            transition_times = c(0, years[transition_times_pos])
-            transition_times_state = c(trueState[1], trueState[transition_times_pos])
+            transition_times = years[transition_times_pos]
+            transition_times_state = trueState[transition_times_pos]
             
-            # Exact transition times for the observed transitions
-            obs_exact_trans_times = transition_times[transition_times_state %in% obs_unique_states]
-            # First time point is always 0
-            for(jjj in 2:length(obs_unique_states)) {
-                trans_time_jjj = obs_exact_trans_times[jjj]
-                obs_state_min = min(which(state == obs_unique_states[jjj]))
-                
-                # Double check states match up
-                if(state[obs_state_min] != obs_unique_states[jjj]) stop("sim error mismatch")
-                
-                visitTimes[obs_state_min] = trans_time_jjj
-            }
+            curr_obs = cbind(visitTimes, state)
+            curr_exact = cbind(transition_times, transition_times_state)
+            curr_exact = curr_exact[curr_exact[,2] != 4, ,drop=F]
+            
+            final_obs = rbind(curr_obs, curr_exact)
+            final_obs = final_obs[order(final_obs[,1]), ]
+            
+            # # Exact transition times for the observed transitions
+            # obs_exact_trans_times = transition_times[transition_times_state %in% obs_unique_states]
+            # # First time point is always 0
+            # for(jjj in 2:length(obs_unique_states)) {
+            #     trans_time_jjj = obs_exact_trans_times[jjj]
+            #     obs_state_min = min(which(state == obs_unique_states[jjj]))
+            #     
+            #     # Double check states match up
+            #     if(state[obs_state_min] != obs_unique_states[jjj]) stop("sim error mismatch")
+            #     
+            #     visitTimes[obs_state_min] = trans_time_jjj
+            # }
         }
         
         if(sum(diff(visitTimes) < 0) > 0) stop("something went wrong with visitTimes")
