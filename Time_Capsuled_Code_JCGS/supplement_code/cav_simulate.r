@@ -1,61 +1,20 @@
-floor_new <- function(t,p) {
-    new_time = NULL
-    if(p == 1) {
-        new_time = t
-    } else if (p==2) {
-        monthSeq = seq(0,1,1/6)
-        yearNum = floor(t)
-        timeInd = max(which(monthSeq <= (t - yearNum))) # selects which month to go to
-        new_time = yearNum + monthSeq[timeInd]
-    } else if (p==3) {
-        new_time = floor(t)
-    } else if (p==4) {
-        if(floor(t) %% 2 == 0) { # divisible by 2
-            new_time = floor(t)
-        } else {
-            temp = t - 1
-            new_time = floor(temp)
-        }
-    } else {
-        print("Invalid input for p")
-    }
-    return(new_time)
-}
-
-censor_times <- function(t, p) {
-    min_t = 0
-    max_t = floor_new(max(t), p)
-    new_time = c()
-    if(p == 1) {
-        new_time = t
-    } else if (p==2) {
-        new_time = seq(min_t, max_t, by = 1/6)
-    } else if (p==3) {
-        new_time = seq(min_t, max_t, by = 1)
-    } else {
-        new_time = seq(min_t, max_t, by = 2)
-    }
-    return(new_time)
-}
-
 library(msm)
 
 args = commandArgs(TRUE)
 num_iter = as.numeric(args[1]) 
-exact_time = as.logical(as.numeric(args[2]))
+case_num = as.numeric(args[2])
+
+# case_num = 1 --> not exact transition time nor all transitions observed
+# case_num = 2 --> exact transition times
+# case_num = 3 --> exact transition times and all transitions observed
 
 set.seed(num_iter)
 print(num_iter)
 
-# p = 1 --> update continuous
-# p = 2 --> update every other month
-# p = 3 --> update every year
-# p = 4 --> update every other year
-
 # Set the sample size.  Note that the true cav data set has 622 subjects.
-N <- 2000
+N <- 3000
 # Choose the discretization of time.
-dt <- 1/1000
+dt <- 1/365
 
 # The true values are set as the posterior means of the thinned last 15,000 steps
 # from running the MCMC routine using the numerical ODE solution (seed 10).
@@ -66,9 +25,11 @@ chain = chain[ind_keep, ]
 
 trueValues = colMeans(chain)
 # The true values corresponding to the slope coefficient on time are scaled by
-# 3 in order to magnify the effect of the different approaches to modelling 
+# 3 in order to magnify the effect of the different approaches to modeling 
 # continuous time HMMs.
 trueValues[6:10] = 3 * trueValues[6:10]
+trueValues[7] = trueValues[8]
+trueValues[8] = trueValues[6]
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
 betaMat <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
@@ -155,7 +116,6 @@ for(i in 1:N){
     time1 <- 0
     s <- trueState
     while(s < 4){
-        
         # Infinitesimal transition rates.
         qmat <- Q(time1,sex,betaMat)
         
@@ -170,57 +130,15 @@ for(i in 1:N){
         if(min_waitTime < dt){  s <- moveToStates[ which(waitTimes == min_waitTime) ]  }
         
         time1 <- time1 + dt
-        
         years <- c( years, time1)
+
         trueState <- c( trueState, s)
     }
+
     timeOfDeath <- tail(years,1)
     
-    if(exact_time) {
-        # We observe the exact transition time ---------------------------------
+    if(case_num == 1) {
         
-        # Get the exact observation times
-        transition_times_pos = which(diff(trueState) != 0) + 1
-        transition_times = years[transition_times_pos]
-        transition_times_state = trueState[transition_times_pos]
-        
-        visitTimes = c(0, transition_times)
-        state = c(trueState[1], transition_times_state)
-        
-        if( timeOfDeath >= 20 ){  
-            visitTimes = visitTimes[-length(visitTimes)]
-            state = state[-length(state)]
-        }
-        
-        if(sum(abs(diff(visitTimes)) > 7) > 0) {
-            new_vt = visitTimes[1]
-            new_s  = state[1]
-            diff_t = abs(diff(visitTimes))
-            for(ttt in 2:length(visitTimes)) {
-                if(diff_t[ttt-1] > 7) {
-                    new_vt = c(new_vt, c(mean(visitTimes[c(ttt-1, ttt)]), visitTimes[ttt]))
-                    new_s = c(new_s, c(state[ttt-1], state[ttt]))
-                } else {
-                    new_vt = c(new_vt, visitTimes[ttt])
-                    new_s = c(new_s, state[ttt])
-                }
-            }
-            
-            visitTimes = new_vt
-            state = new_s
-        }
-        
-        n_i = length(visitTimes)
-        
-        ptnum <- rep(i,n_i)
-        years <- visitTimes
-        rawData <- rbind( rawData, data.frame(ptnum,years,sex,state) )
-        
-        if(4 %in% state){  propDeaths_sim <- propDeaths_sim + 1  }
-        NumObs_sim <- c( NumObs_sim, n_i)
-        
-    } else {
-        # Sample inter-observation times from the cav data set.  Maximum of 20 years in study.
         visitTimes <- NULL
         time2 <- 0
         
@@ -236,7 +154,6 @@ for(i in 1:N){
             # If death occured before the study ended, then record the time of death.
             if( timeOfDeath < 20 ){  visitTimes <- c( visitTimes, timeOfDeath) }
             
-            
             n_i <- length(visitTimes)
             state <- NULL
             for(k in 1:n_i){  state <- c( state, tail( trueState[ years <= visitTimes[k] ], 1))  }
@@ -247,7 +164,72 @@ for(i in 1:N){
             
             if(4 %in% state){  propDeaths_sim <- propDeaths_sim + 1  }
             NumObs_sim <- c( NumObs_sim, n_i)
-        }   
+        }  
+    } else if(case_num == 2) {
+        
+        # Using a similar approach to case 1, we can use the inter-observation 
+        # times to define which transitions we observe.
+        visitTimes <- NULL
+        time2 <- 0
+        while(time2 < timeOfDeath){
+            visitTimes <- c( visitTimes, time2)
+            time2 <- time2 + sample( interObsTime, size=1)
+        }
+        visitTimes <- c( visitTimes, timeOfDeath) 
+        n_i <- length(visitTimes)
+        state <- NULL
+        for(k in 1:n_i){  state <- c( state, tail( trueState[ years <= visitTimes[k] ], 1))  }
+        
+        # Which state transitions do we observe?
+        obs_unique_states = unique(state)
+        
+        # Get the exact transition times ---------------------------------------
+        # if length(unique(state)) == 2, then observe initial state & state 4
+        if(length(obs_unique_states) > 2) {
+            
+            # What are the exact transition times?
+            transition_times_pos = which(diff(trueState) != 0) + 1
+            transition_times = years[transition_times_pos]
+            transition_times_state = trueState[transition_times_pos]
+            
+            curr_obs = cbind(visitTimes, state)
+            curr_exact = cbind(transition_times, transition_times_state)
+            curr_exact = curr_exact[curr_exact[,2] != 4, ,drop=F]
+            curr_exact = curr_exact[curr_exact[,2] %in% obs_unique_states, , drop = F]
+            
+            final_obs = rbind(curr_obs, curr_exact)
+            final_obs = final_obs[order(final_obs[,1]), ]
+            
+            visitTimes = final_obs[,1]
+            state = final_obs[,2]
+        }
+        
+        if(sum(diff(visitTimes) < 0) > 0) stop("something went wrong with visitTimes")
+        
+        n_i = length(visitTimes)
+        ptnum <- rep(i,n_i)
+        years <- visitTimes
+        rawData <- rbind( rawData, data.frame(ptnum,years,sex,state) )
+        
+        if(4 %in% state){  propDeaths_sim <- propDeaths_sim + 1  }
+        NumObs_sim <- c( NumObs_sim, n_i)
+        
+    } else if(case_num == 3) {
+        # Get ALL of the exact transition times 
+        transition_times_pos = which(diff(trueState) != 0) + 1
+        transition_times = years[transition_times_pos]
+        transition_times_state = trueState[transition_times_pos]
+        
+        visitTimes = c(0, transition_times)
+        state = c(trueState[1], transition_times_state)
+        
+        n_i = length(visitTimes)
+        ptnum <- rep(i,n_i)
+        years <- visitTimes
+        rawData <- rbind( rawData, data.frame(ptnum,years,sex,state) )
+        
+        if(4 %in% state){  propDeaths_sim <- propDeaths_sim + 1  }
+        NumObs_sim <- c( NumObs_sim, n_i)
     }
     
 }
@@ -256,14 +238,7 @@ colnames(rawData) <- c('ptnum','years','sex','state')
 N <- length(unique(rawData$ptnum))
 propDeaths_sim <- propDeaths_sim / N
 
-
-# Key
-# p = 1: continuous (no censor)
-# p = 2: once every two months censor
-# p = 3: year censor
-# p = 4: once every two years censor
-p = 1
-disc_time <- sapply(rawData$years, floor_new, p = p)
+disc_time <- rawData$years
 
 obstrue <- rep(0,nrow(rawData))
 
@@ -282,11 +257,8 @@ colnames(cavData) <- c('ptnum','years','disc_time','sex','state','obstrue')
 rownames(cavData) <- NULL
 
 
-if(exact_time) {
-    save(cavData, file=paste("supplement_code/DataOut/exactTime/cavData", num_iter, ".rda", sep=''))
-} else {
-    save(cavData, file=paste("supplement_code/DataOut/interTime/cavData", num_iter, ".rda", sep=''))
-}
+
+save(cavData, file=paste("supplement_code/DataOut/cavData_case", case_num, "_it", num_iter, ".rda", sep=''))
 
 obs_trans <- function(df) {
     count_transitions = matrix(0, nrow=4, ncol=4)

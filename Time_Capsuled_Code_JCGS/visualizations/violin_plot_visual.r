@@ -55,7 +55,7 @@ colnames(cov_final) = c("deSolve", "nhm", "expm_Month", "expm_Year", "expm_BiYea
                         "msm_Month", "msm_year","msm_BiYear")
 cov_final = round(cov_final, digits = 3)
 
-post_means_final = vector(mode = 'list', length = 8)
+post_means_final = vector(mode = 'list', length = 9)
 load("sim_cav_time_inhomog/Plots/post_means_deSolve.rda")
 post_means_final[[1]] = post_means
 load("sim_cav_time_inhomog/Plots/post_means_nhm.rda")
@@ -69,29 +69,53 @@ post_means_final[[5]] = post_means
 load("sim_cav_time_inhomog/Plots/post_means_msm.rda")
 post_means_final[[6]] = post_means[[1]]; post_means_final[[7]] = post_means[[2]]
 post_means_final[[8]] = post_means[[3]]
+load("sim_cav_time_inhomog/Plots/post_means_aj.rda")
+post_means_final[[9]] = post_means
 
 VP <- vector(mode="list", length = length(labels))
 for(r in 1:length(labels)) {
 
     yVar = disc_type = x_label = NULL
 
-    yVar = c(post_means_final[[1]][,r], post_means_final[[2]][,r], post_means_final[[3]][,r],
-             post_means_final[[4]][,r], post_means_final[[5]][,r], post_means_final[[6]][,r],
-             post_means_final[[7]][,r], post_means_final[[8]][,r])
-
-    disc_type = c(rep(paste0(TeX(r'((A))'), "\n", cov_final[r,1]), nrow(post_means_final[[1]])),
-                  rep(paste0(TeX(r'((B))'), "\n", cov_final[r,2]), nrow(post_means_final[[2]])),
-                  rep(paste0(TeX(r'((C): d = 1/6)'), "\n", cov_final[r,3]), nrow(post_means_final[[3]])),
-                  rep(paste0(TeX(r'((C): d = 1)'), "\n", cov_final[r,4]), nrow(post_means_final[[4]])),
-                  rep(paste0(TeX(r'((C): d = 2)'), "\n",cov_final[r,5]), nrow(post_means_final[[5]])),
-                  rep(paste0(TeX(r'((D): d = 1/6)'), "\n",cov_final[r,6]), nrow(post_means_final[[6]])),
-                  rep(paste0(TeX(r'((D): d = 1)'), "\n",cov_final[r,7]), nrow(post_means_final[[7]])),
-                  rep(paste0(TeX(r'((D): d = 2)'), "\n",cov_final[r,8]), nrow(post_means_final[[8]])))
-
-    Method = c(rep("ODE w/ Post. Means", nrow(post_means_final[[1]])),
-               rep("ODE w/ MLE", nrow(post_means_final[[2]])),
-               rep("Expm w/ Post. Means", nrow(post_means_final[[3]]) + nrow(post_means_final[[4]]) + nrow(post_means_final[[5]])),
-               rep("Expm w/ MLE", nrow(post_means_final[[6]]) + nrow(post_means_final[[7]]) + nrow(post_means_final[[8]])))
+    if(r %in% par_index$beta) {
+        yVar = c(post_means_final[[1]][,r], post_means_final[[2]][,r], post_means_final[[3]][,r],
+                 post_means_final[[4]][,r], post_means_final[[5]][,r], post_means_final[[6]][,r],
+                 post_means_final[[7]][,r], post_means_final[[8]][,r], post_means_final[[9]][,r])
+        
+        disc_type = c(rep(paste0(TeX(r'((A))'), "\n", cov_final[r,1]), nrow(post_means_final[[1]])),
+                      rep(paste0(TeX(r'((B))'), "\n", cov_final[r,2]), nrow(post_means_final[[2]])),
+                      rep(paste0(TeX(r'((C): d = 1/6)'), "\n", cov_final[r,3]), nrow(post_means_final[[3]])),
+                      rep(paste0(TeX(r'((C): d = 1)'), "\n", cov_final[r,4]), nrow(post_means_final[[4]])),
+                      rep(paste0(TeX(r'((C): d = 2)'), "\n",cov_final[r,5]), nrow(post_means_final[[5]])),
+                      rep(paste0(TeX(r'((D): d = 1/6)'), "\n",cov_final[r,6]), nrow(post_means_final[[6]])),
+                      rep(paste0(TeX(r'((D): d = 1)'), "\n",cov_final[r,7]), nrow(post_means_final[[7]])),
+                      rep(paste0(TeX(r'((D): d = 2)'), "\n",cov_final[r,8]), nrow(post_means_final[[8]])),
+                      rep(paste0(TeX(r'((E))'), "\n", " "), nrow(post_means_final[[9]])))
+        
+        Method = c(rep("ODE w/ Post. Means", nrow(post_means_final[[1]])),
+                   rep("ODE w/ MLE", nrow(post_means_final[[2]])),
+                   rep("Expm w/ Post. Means", nrow(post_means_final[[3]]) + nrow(post_means_final[[4]]) + nrow(post_means_final[[5]])),
+                   rep("Expm w/ MLE", nrow(post_means_final[[6]]) + nrow(post_means_final[[7]]) + nrow(post_means_final[[8]])),
+                   rep("AJ Estimator", nrow(post_means_final[[9]])))
+    } else {
+        yVar = c(post_means_final[[1]][,r], post_means_final[[2]][,r], post_means_final[[3]][,r],
+                 post_means_final[[4]][,r], post_means_final[[5]][,r], post_means_final[[6]][,r],
+                 post_means_final[[7]][,r], post_means_final[[8]][,r])
+        
+        disc_type = c(rep(paste0(TeX(r'((A))'), "\n", cov_final[r,1]), nrow(post_means_final[[1]])),
+                      rep(paste0(TeX(r'((B))'), "\n", cov_final[r,2]), nrow(post_means_final[[2]])),
+                      rep(paste0(TeX(r'((C): d = 1/6)'), "\n", cov_final[r,3]), nrow(post_means_final[[3]])),
+                      rep(paste0(TeX(r'((C): d = 1)'), "\n", cov_final[r,4]), nrow(post_means_final[[4]])),
+                      rep(paste0(TeX(r'((C): d = 2)'), "\n",cov_final[r,5]), nrow(post_means_final[[5]])),
+                      rep(paste0(TeX(r'((D): d = 1/6)'), "\n",cov_final[r,6]), nrow(post_means_final[[6]])),
+                      rep(paste0(TeX(r'((D): d = 1)'), "\n",cov_final[r,7]), nrow(post_means_final[[7]])),
+                      rep(paste0(TeX(r'((D): d = 2)'), "\n",cov_final[r,8]), nrow(post_means_final[[8]])))
+        
+        Method = c(rep("ODE w/ Post. Means", nrow(post_means_final[[1]])),
+                   rep("ODE w/ MLE", nrow(post_means_final[[2]])),
+                   rep("Expm w/ Post. Means", nrow(post_means_final[[3]]) + nrow(post_means_final[[4]]) + nrow(post_means_final[[5]])),
+                   rep("Expm w/ MLE", nrow(post_means_final[[6]]) + nrow(post_means_final[[7]]) + nrow(post_means_final[[8]])))   
+    }
 
     plot_df = data.frame(yVar = yVar, disc_type = disc_type, Method = Method)
     plot_df$disc_type <- factor(plot_df$disc_type, levels = unique(plot_df$disc_type))

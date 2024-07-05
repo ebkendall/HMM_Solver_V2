@@ -24,6 +24,10 @@ Rscript real_cav_analysis/nhm_runfile.r 5
 # The code above calculates the MLE and standard errors instead of doing MCMC.
 # The number next to the script corresponds to the seed.
 
+Rscript real_cav_analysis/aj_runfile.r
+
+# The code above calculates the empirical estimators
+
 # The following lines produce trace plots and histograms of the MCMC samples.  See the 
 # directory real_cav_analysis/Plots for these figures as well as in the supplementary 
 # materials. This also produces data corresponding to the 95% credible or 
@@ -59,6 +63,10 @@ done
 
 # The code above uses 16 threads in parallel.  The for-loop above can be run in an embarrassingly 
 # parallel fashion.  The code for each $seed may take over 2 days to run.
+
+Rscript sim_cav_time_inhomog/aj_runfile.r
+
+# The code above calculates the empirical estimators for all 100 datasets. 
 
 # The following lines produce trace plots and histograms of the MCMC samples.  See the 
 # directory sim_cav_time_inhomog/Plots for these figures as well as in the supplementary 
@@ -106,7 +114,7 @@ Rscript real_ecog_analysis/computation_test.r
 
 ####################
 # To reproduce figures 1-5 and all additional figures in the supplementary 
-# materials, run the following:
+# materials A-E, run the following:
 Rscript visualizations/credible_set_visual.r
 Rscript visualizations/theorem1_visual.r
 Rscript visualizations/violin_plot_visual.r
@@ -114,3 +122,34 @@ Rscript visualizations/violin_plot_visual.r
 # To see the plots in the paper, go to the directory visualizations/Plots
 # To see the plots in the supplement, go to the directory visualizations/Plots/Supplement
 ###################
+
+####################
+# To reproduce figures and results from Supplement F, run the following:
+# First we simulate the two types of data:
+for seed in {1..100}
+do
+Rscript supplement_code/cav_simulate.r $seed 1
+Rscript supplement_code/cav_simulate.r $seed 2
+Rscript supplement_code/cav_simulate.r $seed 3
+done
+
+# Next we fit the data with the two approaches (AJ and MCMC)
+Rscript supplement_code/aj_runfile.r 1
+Rscript supplement_code/aj_runfile.r 2
+Rscript supplement_code/aj_runfile.r 3
+
+for seed in {1..100}
+do
+Rscript supplement_code/mcmc_runfile.r $seed 1
+Rscript supplement_code/mcmc_runfile.r $seed 2
+Rscript supplement_code/mcmc_runfile.r $seed 3
+done
+
+# Lastly, we plot the results
+Rscript supplement_code/aj_outfile.r 1
+Rscript supplement_code/aj_outfile.r 2
+Rscript supplement_code/aj_outfile.r 3
+
+# To do the computational comparison between deSolve and prodint, run:
+Rscript supplement_code/compute_time.r
+####################

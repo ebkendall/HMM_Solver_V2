@@ -1,285 +1,139 @@
-library(deSolve, quietly=T)
-library(msm, quietly = T)
+library(AalenJohansen)
 
-# ------------------------------------------------------------------------------
-# Functions and routine for numerically calculating P --------------------------
-# ------------------------------------------------------------------------------
-
-Q <- function(time,sex,betaMat){
-    
-    q1  = exp( c(1,time,sex) %*% betaMat[1,] )  # Transition from state 1 to state 2.
-    q2  = exp( c(1,time,sex) %*% betaMat[2,] )  # Transition from state 1 to death.
-    q3  = exp( c(1,time,sex) %*% betaMat[3,] )  # Transition from state 2 to state 3.
-    q4  = exp( c(1,time,sex) %*% betaMat[4,] )  # Transition from state 2 to death.
-    q5  = exp( c(1,time,sex) %*% betaMat[5,] )  # Transition from state 3 to death.
-    
-    qmat = matrix(c( 0,q1, 0,q2,
-                     0, 0,q3,q4,
-                     0, 0, 0,q5,
-                     0, 0, 0, 0),nrow=4,byrow=TRUE)
-    diag(qmat) = -rowSums(qmat)
-    
-    return(qmat)
-}
-
-model_t <- function(t,p,parms) {
-    
-    betaMat <- matrix(parms$b, ncol = 3, byrow = F)
-    
-    q1  = exp( c(1,t,parms$x_ik) %*% betaMat[1,] )  # Transition from state 1 to state 2.   
-    q2  = exp( c(1,t,parms$x_ik) %*% betaMat[2,] )  # Transition from state 1 to death.     
-    q3  = exp( c(1,t,parms$x_ik) %*% betaMat[3,] )  # Transition from state 2 to state 3.   
-    q4  = exp( c(1,t,parms$x_ik) %*% betaMat[4,] )  # Transition from state 2 to death.     
-    q5  = exp( c(1,t,parms$x_ik) %*% betaMat[5,] )  # Transition from state 3 to death.     
-    
-    dP = rep(1,9) # this is the vector with all differential equations
-    
-    dP[1] = p[1]*(-q1-q2)
-    dP[2] = p[1]*q1 + p[2]*(-q3-q4)
-    dP[3] = p[2]*q3 - p[3]*q5
-    dP[4] = p[1]*q2 + p[2]*q4 + p[3]*q5
-    dP[5] = p[5]*(-q3-q4)
-    dP[6] = p[5]*q3 - p[6]*q5
-    dP[7] = p[5]*q4 + p[6]*q5
-    dP[8] = -p[8]*q5
-    dP[9] = p[8]*q5
-    
-    return(list(dP))
-    
-}
-
-# ------------------------------------------------------------------------------
-# Function to calculate Aalen-Johansen estimator -------------------------------
-# ------------------------------------------------------------------------------
-
-obs_trans <- function(df) {
-    count_transitions = matrix(0, nrow=4, ncol=4)
-    total_trans = 0
-    for(i in unique(df[,"ptnum"])){
-        
-        b_i_mle = c(df[df[,"ptnum"] == i, 'state'])
-        
-        for(t in 1:(length(b_i_mle) - 1)) {
-            count_transitions[b_i_mle[t], b_i_mle[t+1]] = 
-                count_transitions[b_i_mle[t], b_i_mle[t+1]] + 1
-            total_trans = total_trans + 1
-        }
-    }
-    print(count_transitions)   
-}
-
-aj_estimate <- function(s, t, data_mat, sex) {
-    
-    # Take only subjects with the correct covariate specification
-    data_mat_sub = data_mat[data_mat$sex == sex, ]
-    
-    # Partition the time domain
-    t_unique = sort(unique(data_mat_sub$years))
-    
-    focus_times = t_unique[t_unique > s & t_unique <= t]
-    
-    P_s_t = diag(4)
-    
-    for(t_j in focus_times) {
-        print(paste0(which(focus_times == t_j), " of ", length(focus_times)))
-        alpha_j = matrix(0, nrow = 4, ncol = 4)
-        
-        t_j_ind = which(data_mat_sub$years == t_j)
-        t_j_ind_1 = t_j_ind - 1
-        
-        state_t_j = data_mat_sub[t_j_ind,"state"]
-        state_t_j_1 = data_mat_sub[t_j_ind_1,"state"]
-        
-        r_j = rep(0,4)
-        for(i in unique(data_mat_sub$ptnum)) {
-            sub_dat = data_mat_sub[data_mat_sub$ptnum == i, ]
-            t_pt = max(which(sub_dat$years < t_j))
-            s_i = sub_dat[t_pt, "state"]
-            r_j[s_i] = r_j[s_i] + 1
-        }
-        
-        if(sum(r_j) != length(unique(data_mat_sub$ptnum))) print("issue with r_j")
-        
-        for(g in 1:4) {
-            for(h in 1:4) {
-                if(g != h) {
-                    alpha_j[g,h] = sum(state_t_j_1 == g & state_t_j == h)
-                }
-            }
-        }
-        
-        for(r in 1:nrow(alpha_j)) {
-            if(r_j[r] != 0) {
-                alpha_j[r, ] = alpha_j[r, ] / r_j[r]   
-            }
-        }
-        
-        diag(alpha_j) = -rowSums(alpha_j)
-        
-        P_s_t = P_s_t %*% (diag(4) + alpha_j)
-    }
-    
-    return(P_s_t)
-}
-
-aj_estimate_misclass <- function(s, t, data_mat, sex) {
-    
-    # Take only subjects with the correct covariate specification
-    data_mat_sub = data_mat[data_mat$sex == sex, ]
-    
-    # Partition the time domain
-    t_unique = sort(unique(data_mat_sub$years))
-    
-    focus_times = t_unique[t_unique > s & t_unique <= t]
-    
-    P_s_t = diag(4)
-    
-    for(t_j in focus_times) {
-        print(paste0(which(focus_times == t_j), " of ", length(focus_times)))
-        alpha_j = matrix(0, nrow = 4, ncol = 4)
-        
-        t_j_ind = which(data_mat_sub$years == t_j)
-        t_j_ind_1 = t_j_ind - 1
-        
-        state_t_j = data_mat_sub[t_j_ind,"state"]
-        state_t_j_1 = data_mat_sub[t_j_ind_1,"state"]
-        
-        r_j = rep(0,4)
-        for(i in unique(data_mat_sub$ptnum)) {
-            sub_dat = data_mat_sub[data_mat_sub$ptnum == i, ]
-            t_pt = max(which(sub_dat$years < t_j))
-            s_i = sub_dat[t_pt, "state"]
-            r_j[s_i] = r_j[s_i] + 1
-        }
-        
-        if(sum(r_j) != length(unique(data_mat_sub$ptnum))) print("issue with r_j")
-        
-        for(g in 1:4) {
-            for(h in 1:4) {
-                if(g != h) {
-                    alpha_j[g,h] = sum(state_t_j_1 == g & state_t_j == h)
-                }
-            }
-        }
-        
-        for(r in 1:nrow(alpha_j)) {
-            if(r_j[r] != 0) {
-                alpha_j[r, ] = alpha_j[r, ] / r_j[r]   
-            }
-        }
-        
-        diag(alpha_j) = -rowSums(alpha_j)
-        
-        P_s_t = P_s_t %*% (diag(4) + alpha_j)
-    }
-    
-    return(P_s_t)
-}
-
-# ------------------------------------------------------------------------------
-# Applying to simulated data ---------------------------------------------------
-# (ignoring covariates; ignoring misclassification) ----------------------------
-# ------------------------------------------------------------------------------
-load('DataOut/Continuous/cavData1.rda')
-
-obs_trans(cavData)
-
-trueValues = c(-2.31617310,  -1.28756312,  -1.10116400,  -2.52367543,
-               -2.10384797,   0.27050001, -11.65470594,  -0.49306415,
-               0.28862090,   0.22731278,  -0.39079609,  -0.05894252,
-               -0.32509646,   0.48631653,   0.99565810,  -5.28923943,
-               -0.90870027,  -2.40751854,  -2.44696544,  -6.52252202,
-               -6.24090500)
-
+# Setting the parameter values to the "true" values which generated the data
+trueValues= c(-2.31617310,  -1.28756312,  -1.10116400,  -2.52367543,  -2.10384797,
+            0.27050001, -11.65470594,  -0.49306415,   0.28862090,   0.22731278,
+            -0.39079609,  -0.05894252,  -0.32509646,   0.48631653,   0.99565810,
+            -5.28923943,  -0.90870027,  -2.40751854,  -2.44696544,  -6.52252202,
+            -6.24090500)
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
-
-P_aj = aj_estimate(1, 2, cavData, 0)
-
-p_ic <- c(p1=1,p2=0,p3=0,p4=0,p5=1,p6=0,p7=0,p8=1,p9=0) # initial condition
-
 beta <- matrix(trueValues[par_index$beta], ncol = 3, byrow = F)
 
-out <- deSolve::ode(p_ic, times = 1:2, func = model_t,
-                    parms = list(b=beta, x_ik = 0))
+par_est_split = vector(mode = 'list', length = 100)
+for(it in 1:100) {
+    print(it)
+    load(paste0("sim_cav_time_inhomog/DataOut/Continuous/cavData", it, ".rda"))
+    eid = unique(cavData$ptnum)
+    
+    # Format the simulated data into the form for AalenJohansen
+    cavData1 = cavData[cavData$sex == 1, ]
+    cavData0 = cavData[cavData$sex == 0, ]
+    
+    eid1 = unique(cavData1$ptnum)
+    eid0 = unique(cavData0$ptnum)
+    
+    cavData_aj1 = vector(mode = 'list', length = length(eid1))
+    for(i in 1:length(cavData_aj1)) {
+        sub_dat = cavData1[cavData1$ptnum == eid1[i], ]
+        cavData_aj1[[i]] = list(times = sub_dat$years, states = sub_dat$state)
+    }
+    
+    cavData_aj0 = vector(mode = 'list', length = length(eid0))
+    for(i in 1:length(cavData_aj0)) {
+        sub_dat = cavData0[cavData0$ptnum == eid0[i], ]
+        cavData_aj0[[i]] = list(times = sub_dat$years, states = sub_dat$state)
+    }
+    
+    # Aalen-Johansen estimator (data split according to covariate) -------------
+    fit1_split <- aalen_johansen(cavData_aj1)
+    fit0_split <- aalen_johansen(cavData_aj0)
+    
+    v1_split = list()
+    v1_split[[1]] <- unlist(lapply(fit1_split$Lambda, FUN = function(L) L[1,2]))
+    v1_split[[2]] <- unlist(lapply(fit1_split$Lambda, FUN = function(L) L[1,4]))
+    v1_split[[3]] <- unlist(lapply(fit1_split$Lambda, FUN = function(L) L[2,3]))
+    v1_split[[4]] <- unlist(lapply(fit1_split$Lambda, FUN = function(L) L[2,4]))
+    v1_split[[5]] <- unlist(lapply(fit1_split$Lambda, FUN = function(L) L[3,4]))
+    
+    v0_split = list()
+    v0_split[[1]] <- unlist(lapply(fit0_split$Lambda, FUN = function(L) L[1,2]))
+    v0_split[[2]] <- unlist(lapply(fit0_split$Lambda, FUN = function(L) L[1,4]))
+    v0_split[[3]] <- unlist(lapply(fit0_split$Lambda, FUN = function(L) L[2,3]))
+    v0_split[[4]] <- unlist(lapply(fit0_split$Lambda, FUN = function(L) L[2,4]))
+    v0_split[[5]] <- unlist(lapply(fit0_split$Lambda, FUN = function(L) L[3,4]))
+    
+    v1_t_split <- fit1_split$t
+    v0_t_split <- fit0_split$t
+    
+    
+    # Using optim to get parameter estimates -----------------------------------
+    min_residuals <- function(data, par) {
+        with(data, sum(( (1/par[2]) * (exp(par[1] + par[2]*t + par[3]*x) - exp(par[1] + par[3]*x)) - y)^2))
+    }
+    
+    optim_coeff_split = matrix(0, nrow = 5, ncol = 3)
+    for(i in 1:5) {
+        
+        df0 = data.frame("y" = v0_split[[i]], "t" = v0_t_split, 
+                         "x" = rep(0, length(v0_t_split)))
+        df1 = data.frame("y" = v1_split[[i]], "t" = v1_t_split, 
+                         "x" = rep(1, length(v1_t_split)))
+        
+        df_tot = rbind(df0, df1)
+        
+        init_par = beta[i,]
+        
+        op = optim(par=init_par, fn=min_residuals, data=df_tot, control = list(maxit = 1e5))
+        
+        if(op$convergence != 0) {print(paste0("split ", i, " no convergence"))}
+        
+        optim_coeff_split[i, ] = op$par
+    }
+    par_est_split[[it]] = optim_coeff_split
+}
 
-P_desolve <- matrix(c(out[2,"p1"], out[2,"p2"], out[2,"p3"], out[2,"p4"],
-              0, out[2,"p5"], out[2,"p6"], out[2,"p7"],
-              0,  0, out[2,"p8"], out[2,"p9"],
-              0,  0,  0,  1), nrow = 4, byrow = T)
+par_est_mat_split = matrix(nrow = 100, ncol = 15)
 
-# ------------------------------------------------------------------------------
-# Applying to Real CAV data ----------------------------------------------------
-# (ignoring covariates; ignoring misclassification) ----------------------------
-# ------------------------------------------------------------------------------
-real_cav = msm::cav
-real_cav = real_cav[,c("PTNUM", "years", "sex", "state")]
-colnames(real_cav) = c("ptnum", "years", "sex", "state")
+for(i in 1:100) {
+    par_est_mat_split[i,] = c(par_est_split[[i]])
+}
 
-obs_trans(real_cav)
+labels <- c('baseline S1 (well)   --->   S2 (mild)',
+            'baseline S1 (well)   --->   S4 (dead)',
+            'baseline S2 (mild)   --->   S3 (severe)',
+            'baseline S2 (mild)   --->   S4 (dead)',
+            'baseline S3 (severe)   --->   S4 (dead)',
+            'time S1 (well)   --->   S2 (mild)',
+            'time S1 (well)   --->   S4 (dead)',
+            'time S2 (mild)   --->   S3 (severe)',
+            'time S2 (mild)   --->   S4 (dead)',
+            'time S3 (severe)   --->   S4 (dead)',
+            'sex S1 (well)   --->   S2 (mild)',
+            'sex S1 (well)   --->   S4 (dead)',
+            'sex S2 (mild)   --->   S3 (severe)',
+            'sex S2 (mild)   --->   S4 (dead)',
+            'sex S3 (severe)   --->   S4 (dead)')
 
-par = trueValues
-par[6:10] = (1/3) * par[6:10]
+# Plot and save the mcmc trace plots and histograms.
+library(tidyverse)
+library(gridExtra)
+library(latex2exp)
 
-P_aj_real = aj_estimate(1, 2, real_cav, 0)
+pdf('sim_cav_time_inhomog/Plots/aj.pdf')
+VP <- vector(mode="list", length = length(labels))
+for(r in 1:length(labels)) {
+    # Boxplots for par_est_mat
+    yVar = c(par_est_mat_split[,r])
+    disc_type = rep('AJ', nrow(par_est_mat_split))
+    x_label = paste0("Parameter Value: ", round(trueValues[r], 3))
+    truth_par = trueValues[r]
+    
+    plot_df = data.frame(yVar = yVar, disc_type = disc_type)
+    VP[[r]] = ggplot(plot_df, aes(x=disc_type, y = yVar)) +
+        geom_violin(trim=FALSE) +
+        geom_boxplot(width=0.1) +
+        ggtitle(labels[r]) +
+        ylab(" ") +
+        xlab(x_label) +
+        geom_hline(yintercept=truth_par, linetype="dashed", color = "red") +
+        theme(text = element_text(size = 7))
+}
 
-p_ic <- c(p1=1,p2=0,p3=0,p4=0,p5=1,p6=0,p7=0,p8=1,p9=0) # initial condition
+grid.arrange(VP[[1]], VP[[2]], VP[[3]], VP[[4]], VP[[5]], ncol=2, nrow =3)
+grid.arrange(VP[[6]], VP[[7]], VP[[8]], VP[[9]], VP[[10]], ncol=2, nrow =3)
+grid.arrange(VP[[11]], VP[[12]], VP[[13]], VP[[14]], VP[[15]], ncol=2, nrow =3)
 
-beta_real <- matrix(par[par_index$beta], ncol = 3, byrow = F)
+dev.off()
 
-out_real <- deSolve::ode(p_ic, times = 1:2, func = model_t,
-                    parms = list(b=beta_real, x_ik = 0))
-
-P_desolve_real <- matrix(c(out_real[2,"p1"], out_real[2,"p2"], out_real[2,"p3"], out_real[2,"p4"],
-                      0, out_real[2,"p5"], out_real[2,"p6"], out_real[2,"p7"],
-                      0,  0, out_real[2,"p8"], out_real[2,"p9"],
-                      0,  0,  0,  1), nrow = 4, byrow = T)
-
-# Perhaps a naive workaround is to just "ignore" the assumed impossible transitions
-
-
-
-# # Partition the time domain
-# t_unique = sort(unique(cavData$years))
-# 
-# # Specify the two time points with which to estimate P(s,t)
-# s = 1
-# t = 2
-# 
-# focus_times = t_unique[t_unique > s & t_unique <= t]
-# 
-# P_s_t = diag(4)
-# 
-# for(t_j in focus_times) {
-#     print(which(focus_times == t_j))
-#     alpha_j = matrix(0, nrow = 4, ncol = 4)
-#     
-#     t_j_ind = which(cavData$years == t_j)
-#     t_j_ind_1 = t_j_ind - 1
-#     
-#     state_t_j = cavData[t_j_ind,"state"]
-#     state_t_j_1 = cavData[t_j_ind_1,"state"]
-#     
-#     r_j = rep(0,4)
-#     for(i in unique(cavData$ptnum)) {
-#         sub_dat = cavData[cavData$ptnum == i, ]
-#         t_pt = max(which(sub_dat$years < t_j))
-#         s_i = sub_dat[t_pt, "state"]
-#         r_j[s_i] = r_j[s_i] + 1
-#     }
-#     
-#     if(sum(r_j) != length(unique(cavData$ptnum))) print("issue with r_j")
-#     
-#     for(g in 1:4) {
-#         for(h in 1:4) {
-#             if(g != h) {
-#                 alpha_j[g,h] = sum(state_t_j_1 == g & state_t_j == h)
-#             }
-#         }
-#     }
-#     
-#     alpha_j = alpha_j / r_j
-#     
-#     diag(alpha_j) = -rowSums(alpha_j)
-#     
-#     P_s_t = P_s_t %*% (diag(4) + alpha_j)
-# }
+post_means = par_est_mat_split
+save(post_means, file = paste0("sim_cav_time_inhomog/Plots/post_means_aj.rda"))

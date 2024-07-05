@@ -48,7 +48,7 @@ model_t <- function(t,p,parms) {
 }
 
 # Evaluating the log posterior
-fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, disc, exact_time) {
+fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, disc, case_num) {
     
     # Initial state probabilities
     init_logit = c( 1, exp(pars[par_index$pi_logit][1]), exp(pars[par_index$pi_logit][2]), 0)
@@ -73,7 +73,7 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, disc, exact_tim
         # If time is discretized for matrix exponential (disc = TRUE)
         if(disc) { disc_t_i = x[id == i,"disc_time",drop = F] }
         
-        if(exact_time) {
+        if(case_num == 3) {
             f_i = init[y_i[1]]
         } else {
             f_i = init %*% diag(resp_fnc[, y_i[1]])
@@ -95,28 +95,26 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, disc, exact_tim
                               0,  0,  0,  1), nrow = 4, byrow = T)
             }
             
-            if(exact_time) {
-                if(y_i[k-1] != y_i[k]) {
-                    val = f_i * P[y_i[k-1], y_i[k-1]] * Q(t_i[k], x_i[k,], beta)[y_i[k-1], y_i[k]]   
-                } else {
-                    val = f_i * P[y_i[k-1], y_i[k]]
-                }
-            } else {
-                # Checking if death (state = 4) has occurred
+            if(case_num == 1) {
                 if(y_i[k] != 4) {
-                    # Checking if the row is observed or a censored row
-                    if(y_i[k] != 99) {
-                        val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
-                    } else { # censor row (only happens when disc == TRUE)
-                        val = f_i %*% P %*% diag(rowSums(resp_fnc[, 1:3]))
-                    }
-                } else { # death is observed
-                    if(disc){
-                        val = f_i %*% P %*% Q(disc_t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
-                    } else{
-                        val = f_i %*% P %*% Q(t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
-                    }
-                }   
+                    val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
+                } else {
+                    val = f_i %*% P %*% Q(t_i[k], x_i[k,], beta) %*% diag(resp_fnc[, y_i[k]])
+                }
+            } else if(case_num == 2) {
+                if(y_i[k-1] != y_i[k]) {
+                    q_temp = Q(t_i[k], x_i[k,], beta)
+                    diag(q_temp) = 0
+                    val = f_i %*% P %*% q_temp %*% diag(resp_fnc[, y_i[k]])
+                } else {
+                    val = f_i %*% P %*% diag(resp_fnc[, y_i[k]])
+                }
+            } else if(case_num == 3) {
+                if(y_i[k-1] != y_i[k]) {
+                    val = f_i * P[y_i[k-1], y_i[k-1]] * Q(t_i[k], x_i[k,], beta)[y_i[k-1], y_i[k]]
+                } else {
+                    val = f_i * P[y_i[k-1], y_i[k-1]]
+                }
             }
             
             norm_val = sqrt(sum(val^2))
@@ -141,7 +139,7 @@ fn_log_post <- function(pars, prior_par, par_index, x, y, t, id, disc, exact_tim
 # The mcmc routine for samping the parameters
 # -----------------------------------------------------------------------------
 mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
-                         steps, burnin, n_cores, disc, exact_time){
+                         steps, burnin, n_cores, disc, case_num){
     
     cl <- makeCluster(n_cores, outfile="")
     registerDoParallel(cl)
@@ -151,9 +149,6 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
     n_par = length(pars)
     chain = matrix( 0, steps, n_par)
     
-    # group = list(c(par_index$beta[1:5]),
-    #              c(par_index$beta[6:10]),
-    #              c(par_index$beta[11:15]))
     group = list(c(par_index$beta))
     n_group = length(group)
     
@@ -162,7 +157,7 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
     accept = rep( 0, n_group)
     
     # Evaluate the log posterior of the initial parameters
-    log_post_prev = fn_log_post( pars, prior_par, par_index, x, y, t, id, disc, exact_time)
+    log_post_prev = fn_log_post( pars, prior_par, par_index, x, y, t, id, disc, case_num)
     
     if(!is.finite(log_post_prev)){
         print("Infinite log-posterior; choose better initial parameters")
@@ -180,7 +175,7 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
             proposal[ind_j] = rmvnorm( n=1, mean=pars[ind_j],sigma=pcov[[j]]*pscale[j])
             
             # Compute the log density for the proposal
-            log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id, disc, exact_time)
+            log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id, disc, case_num)
             
             # Only propose valid parameters during the burnin period
             if(ttt < burnin){
@@ -190,7 +185,7 @@ mcmc_routine = function( y, x, t, id, init_par, prior_par, par_index,
                     proposal = pars
                     proposal[ind_j] = rmvnorm( n=1, mean=pars[ind_j],
                                             sigma=pcov[[j]]*pscale[j])
-                    log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id, disc, exact_time)
+                    log_post = fn_log_post(proposal, prior_par, par_index, x, y, t, id, disc, case_num)
 
                     prop_count = prop_count + 1
 

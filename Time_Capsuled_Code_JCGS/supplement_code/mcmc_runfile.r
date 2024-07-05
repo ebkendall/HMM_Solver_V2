@@ -2,7 +2,11 @@ source("supplement_code/mcmc_routine.r")
 
 args = commandArgs(TRUE)
 ind = as.numeric(args[1])
-exact_time = as.logical(as.numeric(args[2]))
+case_num = as.numeric(args[2])
+
+# case_num = 1 --> not exact transition time nor all transitions observed
+# case_num = 2 --> exact transition times
+# case_num = 3 --> exact transition times and all transitions observed
 
 set.seed(ind)
 print(ind)
@@ -14,14 +18,12 @@ ind_keep = seq(1, nrow(chain), by=10)
 chain = chain[ind_keep, ]
 init_par = colMeans(chain)
 init_par[6:10] = 3 * init_par[6:10]
+init_par[7] = init_par[8]
+init_par[8] = init_par[6]
 
 par_index = list( beta=1:15, misclass=16:19, pi_logit=20:21)
 
-if(exact_time) {
-    load(paste0('supplement_code/DataOut/exactTime/cavData', ind, '.rda'))
-} else {
-    load(paste0('supplement_code/DataOut/interTime/cavData', ind, '.rda'))
-}
+load(paste0("supplement_code/DataOut/cavData_case", case_num, "_it", ind, ".rda"))
 
 temp_data = as.matrix(cavData); rownames(temp_data) = NULL
 id = temp_data[,"ptnum"]
@@ -46,14 +48,10 @@ prior_par = data.frame( prior_mean=init_par[c(par_index$beta, par_index$pi_logit
 s_time = Sys.time()
 
 mcmc_out = mcmc_routine(y, x, t, id, init_par, prior_par, par_index,
-                        steps, burnin, n_cores, disc, exact_time)
+                        steps, burnin, n_cores, disc, case_num)
 
 mcmc_out$mean_t = mean_t
 
 e_time = Sys.time() - s_time; print(e_time)
 
-if(exact_time) {
-    save(mcmc_out, file = paste0("supplement_code/Model_out/exactTime/mcmc_out_", ind, ".rda"))
-} else {
-    save(mcmc_out, file = paste0("supplement_code/Model_out/interTime/mcmc_out_", ind, ".rda"))
-}
+save(mcmc_out, file = paste0('supplement_code/Model_out/mcmc_out_case', case_num, '_it', ind, '.rda'))
