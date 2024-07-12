@@ -207,7 +207,7 @@ time_plot = ggplot(plot_df, aes(x=xVar, y = yVar)) +
     geom_point() +
     labs(title = TeX(r'(Computation time using prodint)')) +
     ylab(TeX(r'(computation time (sec.) )')) + 
-    xlab(TeX(r'($s$, number of subintervals)')) +
+    xlab(TeX(r'($s$, number of partition points)')) +
     geom_hline(yintercept=deSolve_time, linetype="dashed", color = "red", linewidth=1.5) +
     theme(text = element_text(size = 30), legend.position = "none", 
           panel.background = element_rect(fill = "white", colour = "grey", 
@@ -227,7 +227,7 @@ like_plot = ggplot(plot_df, aes(x=xVar, y = yVar)) +
     geom_point() +
     labs(title = TeX(r'(Squared difference in likelihood between using deSolve and prodint)')) +
     ylab(TeX(r'(squared likelihood diff.)')) + 
-    xlab(TeX(r'($s$, number of subintervals)')) +
+    xlab(TeX(r'($s$, number of partition points)')) +
     theme(text = element_text(size = 30), legend.position = "none", 
           panel.background = element_rect(fill = "white", colour = "grey", 
                                           linetype = 'solid', linewidth = 1),

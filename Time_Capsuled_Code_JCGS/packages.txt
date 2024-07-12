@@ -12,6 +12,7 @@ expm - 0.999.6
 latex2exp - 0.9.5
 nhm - 0.1.2 (use "install.packages('nhm_0.1.2.tar.gz', repos = NULL)" in real_cav_analysis/)
 AalenJohansen - 1.0
+ggbreak - 0.1.2
 
 
 The following are all of the R packages used and their respective versions for 

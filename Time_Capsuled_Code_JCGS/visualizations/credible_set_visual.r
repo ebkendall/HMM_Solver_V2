@@ -1,5 +1,6 @@
 library(tidyverse)
 library(latex2exp)
+library(ggbreak)
 
 # Figure 4 --------------------------------------------------------------------
 
@@ -55,6 +56,7 @@ baseline_plot = plotting_df[baseline_ind, ]
 rownames(baseline_plot) = NULL
 png("visualizations/Plots/baseline_cred_set.png", width = 1600, height = 700)
 ggplot(baseline_plot, aes(x = baseline_num, col = method)) + 
+    ylim(min(baseline_plot$lower) - 1, max(baseline_plot$upper) + 0.5) +
     geom_errorbar(aes(ymin = lower, ymax = upper), position = position_dodge(0.6), size = 2.5, width=0.5) +
     scale_x_discrete(labels = c(TeX(r'($\hat{\beta}_{0,1}:$ 1$\to$2)'), TeX(r'($\hat{\beta}_{0,2}:$ 1$\to$4)'),
                         TeX(r'($\hat{\beta}_{0,3}:$ 2$\to$3)'), TeX(r'($\hat{\beta}_{0,4}:$ 2$\to$4)'),
@@ -66,6 +68,7 @@ ggplot(baseline_plot, aes(x = baseline_num, col = method)) +
     coord_cartesian(clip = "off")+
     theme(text=element_text(size=40),
             axis.text.x = element_text(size=35),
+            axis.text.y = element_text(size=20),
             legend.title=element_text(size=40),
             legend.text=element_text(size=40),
             panel.border = element_blank(),
@@ -73,7 +76,8 @@ ggplot(baseline_plot, aes(x = baseline_num, col = method)) +
             panel.background = element_rect(fill = "white"),
             panel.grid.major = element_line(linetype = 'solid',
                                 colour = "grey")) +
-    geom_vline(xintercept=c(0.5,1.5,2.5,3.5,4.5,5.5), linetype="dotted", size=1.5)
+    geom_vline(xintercept=c(0.5,1.5,2.5,3.5,4.5,5.5), linetype="dotted", size=1.5) + 
+    scale_y_cut(breaks=c(-14), which=c(1,2), scales=c(1,0.15))
 dev.off()
 
 # time coefficient ------------------------------------------------------------
@@ -92,6 +96,7 @@ ggplot(time_plot, aes(x = baseline_num, col = method)) +
     coord_cartesian(clip = "off")+
     theme(text=element_text(size=40),
             axis.text.x = element_text(size=35),
+            axis.text.y = element_text(size=20),
             legend.title=element_text(size=40),
             legend.text=element_text(size=40),
             panel.border = element_blank(),
@@ -108,6 +113,7 @@ rownames(sex_coeff_plot) = NULL
 png("visualizations/Plots/Supplement/sex_cred_set.png", width = 1600, height = 700)
 ggplot(sex_coeff_plot, aes(x = baseline_num, col = method)) + 
     geom_errorbar(aes(ymin = lower, ymax = upper), position = position_dodge(0.6), size = 2.5, width=0.3) +
+    ylim(min(sex_coeff_plot$lower), max(sex_coeff_plot$upper) + 1) +
     scale_x_discrete(labels = c(TeX(r'($\hat{\beta}_{2,1}:$ 1$\to$2)'), TeX(r'($\hat{\beta}_{2,2}:$ 1$\to$4)'),
                         TeX(r'($\hat{\beta}_{2,3}:$ 2$\to$3)'), TeX(r'($\hat{\beta}_{2,4}:$ 2$\to$4)'),
                         TeX(r'($\hat{\beta}_{2,5}:$ 3$\to$4)'))) +
@@ -118,6 +124,7 @@ ggplot(sex_coeff_plot, aes(x = baseline_num, col = method)) +
     coord_cartesian(clip = "off")+
     theme(text=element_text(size=40),
             axis.text.x = element_text(size=35),
+            axis.text.y = element_text(size=20),
             legend.title=element_text(size=40),
             legend.text=element_text(size=40),
             panel.border = element_blank(),
@@ -125,7 +132,8 @@ ggplot(sex_coeff_plot, aes(x = baseline_num, col = method)) +
             panel.background = element_rect(fill = "white"),
             panel.grid.major = element_line(linetype = 'solid',
                                 colour = "grey")) +
-    geom_vline(xintercept=c(0.5,1.5,2.5,3.5,4.5,5.5), linetype="dotted", size=1.5)
+    geom_vline(xintercept=c(0.5,1.5,2.5,3.5,4.5,5.5), linetype="dotted", size=1.5) + 
+    scale_y_cut(breaks=c(5), which=c(1,2), scales=c(0.15, 1))
 dev.off()
 
 # misclassification -----------------------------------------------------------
@@ -143,6 +151,7 @@ ggplot(misclass_plot, aes(x = baseline_num, col = method)) +
     coord_cartesian(clip = "off")+
     theme(text=element_text(size=40), 
             axis.text.x = element_text(size=25),  
+            axis.text.y = element_text(size=20),
             legend.title=element_text(size=40),
             legend.text=element_text(size=40),
             panel.border = element_blank(),
@@ -167,6 +176,7 @@ ggplot(init_plot, aes(x = baseline_num, col = method)) +
     coord_cartesian(clip = "off")+
     theme(text=element_text(size=40),
             axis.text.x = element_text(size=35),
+            axis.text.y = element_text(size=20),
             legend.title=element_text(size=40),
             legend.text=element_text(size=40),
             panel.border = element_blank(),
@@ -222,6 +232,7 @@ ggplot(baseline_plot, aes(x = baseline_num, col = method)) +
     coord_cartesian(clip = "off")+
     theme(text=element_text(size=40),
             axis.text.x = element_text(size=35),
+            axis.text.y = element_text(size=20),
             legend.title=element_text(size=40),
             legend.text=element_text(size=40),
             panel.border = element_blank(),
@@ -246,6 +257,7 @@ ggplot(time_plot, aes(x = baseline_num, col = method)) +
     coord_cartesian(clip = "off")+
     theme(text=element_text(size=40),
             axis.text.x = element_text(size=35),
+            axis.text.y = element_text(size=20),
             legend.title=element_text(size=40),
             legend.text=element_text(size=40),
             panel.border = element_blank(),
@@ -270,6 +282,7 @@ ggplot(misclass_plot, aes(x = baseline_num, col = method)) +
     coord_cartesian(clip = "off")+
     theme(text=element_text(size=40),   
             axis.text.x = element_text(size=30),
+            axis.text.y = element_text(size=20),
             legend.title=element_text(size=40),
             legend.text=element_text(size=40),
             panel.border = element_blank(),
@@ -292,6 +305,7 @@ ggplot(init_plot, aes(x = baseline_num, col = method)) +
     coord_cartesian(clip = "off")+
     theme(text=element_text(size=40),
             axis.text.x = element_text(size=35),
+            axis.text.y = element_text(size=20),
             legend.title=element_text(size=40),
             legend.text=element_text(size=40),
             panel.border = element_blank(),
@@ -315,6 +329,7 @@ ggplot(delta_plot, aes(x = baseline_num, col = method)) +
     coord_cartesian(clip = "off")+
     theme(text=element_text(size=40),
             axis.text.x = element_text(size=35),
+            axis.text.y = element_text(size=20),
             legend.title=element_text(size=40),
             legend.text=element_text(size=40),
             panel.border = element_blank(),
@@ -337,6 +352,7 @@ ggplot(theta_plot, aes(x = baseline_num, col = method)) +
     coord_cartesian(clip = "off")+
     theme(text=element_text(size=40),
             axis.text.x = element_text(size=35),
+            axis.text.y = element_text(size=20),
             legend.title=element_text(size=40),
             legend.text=element_text(size=40),
             panel.border = element_blank(),
@@ -359,6 +375,7 @@ ggplot(alpha_plot, aes(x = baseline_num, col = method)) +
     coord_cartesian(clip = "off")+
     theme(text=element_text(size=40),
             axis.text.x = element_text(size=35),
+            axis.text.y = element_text(size=20),
             legend.title=element_text(size=40),
             legend.text=element_text(size=40),
             panel.border = element_blank(),
@@ -381,6 +398,7 @@ ggplot(beta_plot, aes(x = baseline_num, col = method)) +
     coord_cartesian(clip = "off")+
     theme(text=element_text(size=40),
             axis.text.x = element_text(size=35),
+            axis.text.y = element_text(size=20),
             legend.title=element_text(size=40),
             legend.text=element_text(size=40),
             panel.border = element_blank(),
